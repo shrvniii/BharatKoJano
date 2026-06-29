@@ -41,5 +41,11 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Static files storage for production (compressing and caching)
-# We can use WhiteNoise if we want Django to serve static files, 
-# but since Nginx is recommended, we'll let Nginx serve /static/ and /media/ directly.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
