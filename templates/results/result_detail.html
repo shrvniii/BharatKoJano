@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Result Detail - {{ result.participant.full_name }}{% endblock %}
+
+{% block page_title %}Result Breakdown{% endblock %}
+
+{% block content %}
+<!-- Candidate Info Card -->
+<div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; border-left: 4px solid var(--accent-color);">
+    <div>
+        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Candidate Details</span>
+        <h2 style="margin-top: 4px; margin-bottom: 8px; font-size: 22px; color: var(--primary-color);">{{ result.participant.full_name }}</h2>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--text-muted);">
+            <span><i class="bi bi-hash"></i> Roll No: <strong>{{ result.participant.roll_number }}</strong></span>
+            <span><i class="bi bi-building"></i> School: <strong>{{ result.participant.school.name }}</strong></span>
+            <span><i class="bi bi-people"></i> Group: <strong>{{ result.participant.get_group_display }}</strong></span>
+            <span><i class="bi bi-file-earmark-text"></i> Paper Set: <strong>{{ result.participant.get_paper_set_display }}</strong></span>
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: 24px; align-items: center; background-color: var(--bg-color); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <div style="text-align: center;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Final Score</div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent-color);">{{ result.score }} <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">/ 50</span></div>
+        </div>
+        <div style="width: 1px; height: 40px; background-color: var(--border-color);"></div>
+        <div style="text-align: center;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Percentage</div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">{{ result.percentage }}%</div>
+        </div>
+        <div style="width: 1px; height: 40px; background-color: var(--border-color);"></div>
+        <div style="text-align: center;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Group Rank</div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--success-color);">#{{ group_rank }} <span style="font-size: 12px; font-weight: 500; color: var(--text-muted);">of {{ total_in_group }}</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Tiles -->
+<div class="grid-4" style="margin-bottom: 24px;">
+    <div class="card stat-card success" style="padding: 16px;">
+        <div class="stat-info">
+            <span class="stat-label">Correct Answers</span>
+            <span class="stat-value" style="font-size: 24px; color: var(--success-color);">{{ result.score }}</span>
+        </div>
+        <i class="bi bi-check-circle-fill stat-icon" style="color: var(--success-color);"></i>
+    </div>
+    
+    <div class="card stat-card danger" style="padding: 16px;">
+        <div class="stat-info">
+            <span class="stat-label">Incorrect Answers</span>
+            <span class="stat-value" style="font-size: 24px; color: var(--danger-color);">
+                {% widthratio 50 1 1 as total %}
+                {{ 50|add:result.score|add:result.unanswered_count|add:result.multi_marked_count }}
+                <!-- Wait, simple math in template: incorrect = 50 - score - unanswered - multimarked -->
+                <script>
+                    document.write(50 - {{ result.score }} - {{ result.unanswered_count }} - {{ result.multi_marked_count }});
+                </script>
+            </span>
+        </div>
+        <i class="bi bi-x-circle-fill stat-icon" style="color: var(--danger-color);"></i>
+    </div>
+    
+    <div class="card stat-card warning" style="padding: 16px;">
+        <div class="stat-info">
+            <span class="stat-label">Unanswered</span>
+            <span class="stat-value" style="font-size: 24px; color: var(--warning-color);">{{ result.unanswered_count }}</span>
+        </div>
+        <i class="bi bi-question-circle-fill stat-icon" style="color: var(--warning-color);"></i>
+    </div>
+    
+    <div class="card stat-card" style="padding: 16px; border-left-color: var(--text-muted);">
+        <div class="stat-info">
+            <span class="stat-label">Multi-marked</span>
+            <span class="stat-value" style="font-size: 24px; color: var(--text-muted);">{{ result.multi_marked_count }}</span>
+        </div>
+        <i class="bi bi-exclamation-circle-fill stat-icon" style="color: var(--text-muted);"></i>
+    </div>
+</div>
+
+<!-- Question Breakdown (2 Column Layout) -->
+<div class="card">
+    <h3 style="margin-bottom: 20px; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <span>Question-by-Question Breakdown</span>
+        <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">Marked vs. Correct Key</span>
+    </h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <!-- Column 1 (Q1-Q25) -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; font-weight: 700; font-size: 12px; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin-bottom: 6px;">
+                <span style="width: 60px;">Q.No</span>
+                <span style="width: 100px; text-align: center;">Marked</span>
+                <span style="width: 100px; text-align: center;">Correct</span>
+                <span style="flex-grow: 1; text-align: right;">Status</span>
+            </div>
+            
+            {% for item in result.question_breakdown %}
+                {% if forloop.counter <= 25 %}
+                    <div style="display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 14px;">
+                        <span style="width: 60px; font-weight: 700; color: var(--text-muted);">Q{{ item.q_no }}</span>
+                        <span style="width: 100px; text-align: center; font-weight: 600; font-family: monospace;">{{ item.detected }}</span>
+                        <span style="width: 100px; text-align: center; font-weight: 600; font-family: monospace; color: var(--accent-color);">{{ item.correct }}</span>
+                        <span style="flex-grow: 1; text-align: right;">
+                            {% if item.status == 'correct' %}
+                                <span class="badge badge-success" style="padding: 2px 8px; font-size: 10px;">Correct</span>
+                            {% elif item.status == 'unanswered' %}
+                                <span class="badge badge-warning" style="padding: 2px 8px; font-size: 10px;">Blank</span>
+                            {% elif item.status == 'multi-marked' %}
+                                <span class="badge badge-danger" style="background-color: #E2E8F0; color: #475569; padding: 2px 8px; font-size: 10px;">Multi</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="padding: 2px 8px; font-size: 10px;">Wrong</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <!-- Column 2 (Q26-Q50) -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; font-weight: 700; font-size: 12px; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin-bottom: 6px;">
+                <span style="width: 60px;">Q.No</span>
+                <span style="width: 100px; text-align: center;">Marked</span>
+                <span style="width: 100px; text-align: center;">Correct</span>
+                <span style="flex-grow: 1; text-align: right;">Status</span>
+            </div>
+            
+            {% for item in result.question_breakdown %}
+                {% if forloop.counter > 25 %}
+                    <div style="display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 14px;">
+                        <span style="width: 60px; font-weight: 700; color: var(--text-muted);">Q{{ item.q_no }}</span>
+                        <span style="width: 100px; text-align: center; font-weight: 600; font-family: monospace;">{{ item.detected }}</span>
+                        <span style="width: 100px; text-align: center; font-weight: 600; font-family: monospace; color: var(--accent-color);">{{ item.correct }}</span>
+                        <span style="flex-grow: 1; text-align: right;">
+                            {% if item.status == 'correct' %}
+                                <span class="badge badge-success" style="padding: 2px 8px; font-size: 10px;">Correct</span>
+                            {% elif item.status == 'unanswered' %}
+                                <span class="badge badge-warning" style="padding: 2px 8px; font-size: 10px;">Blank</span>
+                            {% elif item.status == 'multi-marked' %}
+                                <span class="badge badge-danger" style="background-color: #E2E8F0; color: #475569; padding: 2px 8px; font-size: 10px;">Multi</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="padding: 2px 8px; font-size: 10px;">Wrong</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Actions -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+        <a href="{% url 'results:list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            <span>Back to Results</span>
+        </a>
+        
+        <div style="display: flex; gap: 12px;">
+            <!-- Delete OMR Submission / Re-scan button -->
+            <a href="{% url 'scanner:delete_submission' result.submission.pk %}" class="btn btn-danger">
+                <i class="bi bi-trash"></i>
+                <span>Delete & Re-scan</span>
+            </a>
+            
+            <a href="{% url 'reports:individual_download' result.participant.pk %}" class="btn btn-primary">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>Download PDF Slip</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

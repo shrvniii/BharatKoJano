@@ -1,0 +1,110 @@
+from django.shortcuts import render, get_object_or_404
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponse, Http404
+from django.contrib import messages
+from .pdf_builder import build_individual_slip_pdf, build_school_results_pdf, build_ranking_list_pdf
+from .csv_builder import build_rankings_csv
+from scanner.omr_generator import generate_blank_omr_pdf
+from results.models import Result
+from results.ranking import calculate_dense_ranks
+from participants.models import Participant
+from schools.models import School
+import tempfile
+import os
+
+class ReportListView(LoginRequiredMixin, View):
+    def get(self, request):
+        schools = School.objects.all().order_by('name')
+        participants_with_results = Participant.objects.filter(
+            omr_submission__status='EVALUATED'
+        ).order_by('roll_number')
+        
+        context = {
+            'schools': schools,
+            'participants': participants_with_results
+        }
+        return render(request, 'reports/report_list.html', context)
+
+class IndividualReportDownloadView(LoginRequiredMixin, View):
+    def get(self, request, participant_id):
+        participant = get_object_or_404(Participant, pk=participant_id)
+        if not hasattr(participant, 'omr_submission') or participant.omr_submission.status != 'EVALUATED':
+            raise Http404("No evaluated result found for this participant.")
+            
+        result = participant.omr_submission.result
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="result_slip_{participant.roll_number}.pdf"'
+        
+        build_individual_slip_pdf(result, response)
+        return response
+
+class SchoolReportDownloadView(LoginRequiredMixin, View):
+    def get(self, request, school_id):
+        school = get_object_or_404(School, pk=school_id)
+        
+        # Get all results for this school, sorted by group and score
+        results = list(Result.objects.filter(
+            participant__school=school
+        ).select_related('participant').order_by('participant__group', '-score', 'participant__roll_number'))
+        
+        # Split and calculate ranks within school categories
+        juniors = [r for r in results if r.participant.group == 'JUNIOR']
+        seniors = [r for r in results if r.participant.group == 'SENIOR']
+        calculate_dense_ranks(juniors)
+        calculate_dense_ranks(seniors)
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="school_report_{school.name.replace(" ", "_")}.pdf"'
+        
+        build_school_results_pdf(school, results, response)
+        return response
+
+class RankingReportDownloadView(LoginRequiredMixin, View):
+    def get(self, request, group):
+        group_upper = group.upper()
+        if group_upper not in ['JUNIOR', 'SENIOR']:
+            raise Http404("Invalid group.")
+            
+        results = list(Result.objects.filter(
+            participant__group=group_upper
+        ).select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
+        
+        calculate_dense_ranks(results)
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{group_upper.lower()}_rankings.pdf"'
+        
+        build_ranking_list_pdf(group_upper, results, response)
+        return response
+
+class CSVReportDownloadView(LoginRequiredMixin, View):
+    def get(self, request):
+        results = list(Result.objects.select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
+        calculate_dense_ranks(results)
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="quizmaster_standings.csv"'
+        
+        build_rankings_csv(results, response)
+        return response
+
+class BlankOMRSheetDownloadView(LoginRequiredMixin, View):
+    def get(self, request):
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="blank_omr_sheet.pdf"'
+        
+        # Generate the PDF into a temporary file, then write it to the response
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+            
+        try:
+            generate_blank_omr_pdf(tmp_path)
+            with open(tmp_path, 'rb') as f:
+                response.write(f.read())
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+                
+        return response

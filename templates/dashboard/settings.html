@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings{% endblock %}
+
+{% block page_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="grid-2" style="max-width: 900px; margin: 0 auto; align-items: start; gap: 24px;">
+    
+    <!-- User Account Card -->
+    <div class="card">
+        <h2 style="margin-bottom: 16px; color: var(--primary-color);">Account Information</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+            You are logged in as the primary administrator.
+        </p>
+        
+        <div style="background-color: var(--bg-color); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 24px; font-size: 14px;">
+            <div style="margin-bottom: 8px;"><strong>Username:</strong> <code>{{ user.username }}</code></div>
+            <div style="margin-bottom: 8px;"><strong>Status:</strong> <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">Superuser</span></div>
+            <div><strong>Timezone:</strong> <code>Asia/Kolkata</code></div>
+        </div>
+        
+        <a href="{% url 'admin:password_change' %}" class="btn btn-secondary btn-sm" target="_blank">
+            <i class="bi bi-shield-lock"></i> Change Admin Password
+        </a>
+    </div>
+    
+    <!-- Database Reset Card -->
+    <div class="card" style="border-top: 4px solid var(--danger-color);">
+        <h2 style="color: var(--danger-color); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Factory Reset Database</span>
+        </h2>
+        
+        <p style="color: var(--text-primary); font-size: 14px; margin-bottom: 16px;">
+            Use this option to clear all test or demo data before starting your official competition.
+        </p>
+        
+        <div class="alert alert-danger" style="margin-bottom: 24px; font-size: 13px; line-height: 1.5; padding: 12px 16px;">
+            <i class="bi bi-trash-fill" style="font-size: 16px;"></i>
+            <span>
+                <strong>Warning:</strong> This will permanently delete all <strong>Schools, Participants, Answer Keys, OMR Submissions, and Results</strong>. It will also delete all uploaded image files from the server. Your admin account will not be deleted.
+            </span>
+        </div>
+        
+        <form method="post" action="{% url 'dashboard:reset_data' %}">
+            {% csrf_token %}
+            
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="confirm_text" class="form-label required" style="font-size: 13px; font-weight: 600;">
+                    Type <strong>RESET</strong> in the box below to confirm:
+                </label>
+                <input type="text" name="confirm_text" id="confirm_text" class="form-control" placeholder="Type RESET" required autocomplete="off" style="height: 38px;">
+            </div>
+            
+            <button type="submit" class="btn btn-danger" style="width: 100%;">
+                <i class="bi bi-trash-fill"></i>
+                <span>Wipe Database & Delete Images</span>
+            </button>
+        </form>
+    </div>
+    
+</div>
+{% endblock %}

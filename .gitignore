@@ -1,0 +1,26 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+.env
+
+# Python cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Django local database and static files
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+
+# Media uploads (OMR sheets)
+media/omr_sheets/*
+!media/omr_sheets/.gitkeep
+
+# IDEs and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log

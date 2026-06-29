@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if key %}Edit Answer Key{% else %}Configure Answer Key{% endif %} - {{ group_name }} {{ set_name }}
+{% endblock %}
+
+{% block page_title %}
+    Configure Answer Key
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+        <div>
+            <h2 style="margin-bottom: 4px;">{{ group_name }} Group &mdash; {{ set_name }}</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">Enter the correct option (A, B, C, or D) for each of the 50 questions.</p>
+        </div>
+        
+        <a href="{% url 'answer_keys:status' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-x-circle"></i> Close
+        </a>
+    </div>
+    
+    {% if is_locked %}
+        <div class="alert alert-danger" style="margin-bottom: 24px;">
+            <i class="bi bi-lock-fill" style="font-size: 20px;"></i>
+            <div>
+                <strong>This answer key is LOCKED!</strong>
+                <p style="margin-top: 4px; font-size: 13px;">
+                    OMR sheets have already been evaluated using this key. You can view the answers, but you cannot make any changes. 
+                    To unlock this key, you must delete all OMR submissions linked to the <strong>{{ group_name }} {{ set_name }}</strong> category.
+                </p>
+            </div>
+        </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 32px;">
+            <!-- Column 1 (Q1 to Q25) -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--primary-color);">Questions 1 &ndash; 25</h3>
+                {% for field in form %}
+                    {% if forloop.counter <= 25 %}
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--border-color); border-radius: 4px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F1F5F9'" onmouseout="this.style.backgroundColor='transparent'">
+                            <label for="{{ field.id_for_label }}" style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                <span style="display: inline-flex; width: 24px; height: 24px; background-color: var(--primary-color); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px;">{{ forloop.counter }}</span>
+                                <span>Question {{ forloop.counter }}</span>
+                            </label>
+                            <div style="width: 100px;">
+                                {{ field }}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <!-- Column 2 (Q26 to Q50) -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--primary-color);">Questions 26 &ndash; 50</h3>
+                {% for field in form %}
+                    {% if forloop.counter > 25 %}
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--border-color); border-radius: 4px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#F1F5F9'" onmouseout="this.style.backgroundColor='transparent'">
+                            <label for="{{ field.id_for_label }}" style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                <span style="display: inline-flex; width: 24px; height: 24px; background-color: var(--primary-color); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px;">{{ forloop.counter }}</span>
+                                <span>Question {{ forloop.counter }}</span>
+                            </label>
+                            <div style="width: 100px;">
+                                {{ field }}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <a href="{% url 'answer_keys:status' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to Status</span>
+            </a>
+            
+            {% if not is_locked %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i>
+                    <span>Save Answer Key</span>
+                </button>
+            {% else %}
+                <button type="button" class="btn btn-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                    <i class="bi bi-lock-fill"></i>
+                    <span>Locked</span>
+                </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

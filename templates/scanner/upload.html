@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}OMR Scanner{% endblock %}
+
+{% block page_title %}OMR Scanner & Evaluation{% endblock %}
+
+{% block content %}
+<div class="grid-2">
+    <!-- Upload Form -->
+    <div class="card">
+        <h2 style="margin-bottom: 20px; color: var(--primary-color);">Upload OMR Sheet</h2>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        <strong>Please correct the errors below:</strong>
+                        <ul style="margin-top: 8px; margin-left: 16px;">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="id_participant" class="form-label required">Select Participant</label>
+                {{ form.participant }}
+                <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
+                    Only showing participants who do not have an evaluated result. Search by Roll Number or Name.
+                </span>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_image" class="form-label required">OMR Sheet Image</label>
+                {{ form.image }}
+                <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
+                    Upload a high-quality scan or photo (JPEG, JPG, or PNG). Max file size: 10 MB.
+                </span>
+            </div>
+            
+            <div style="margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-cloud-arrow-up-fill"></i>
+                    <span>Upload & Grade Sheet</span>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Instructions & Downloads -->
+    <div class="card" style="background-color: var(--primary-color); color: white;">
+        <h2 style="color: white; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-info-circle-fill" style="color: #F57F17;"></i>
+            <span>Scanning Guidelines</span>
+        </h2>
+        
+        <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 16px; font-size: 14px;">
+            <li style="display: flex; gap: 12px;">
+                <i class="bi bi-1-circle-fill" style="color: #F57F17; font-size: 18px; flex-shrink: 0;"></i>
+                <span>Ensure the **four black square registration marks** in the corners of the sheet are completely visible and not covered by fingers, shadows, or folds.</span>
+            </li>
+            <li style="display: flex; gap: 12px;">
+                <i class="bi bi-2-circle-fill" style="color: #F57F17; font-size: 18px; flex-shrink: 0;"></i>
+                <span>Take the photo directly from above to minimize perspective distortion, and ensure the page is flat.</span>
+            </li>
+            <li style="display: flex; gap: 12px;">
+                <i class="bi bi-3-circle-fill" style="color: #F57F17; font-size: 18px; flex-shrink: 0;"></i>
+                <span>Capture in **good lighting** to avoid heavy shadows across the bubbles. Clear natural light or bright indoor lighting works best.</span>
+            </li>
+            <li style="display: flex; gap: 12px;">
+                <i class="bi bi-4-circle-fill" style="color: #F57F17; font-size: 18px; flex-shrink: 0;"></i>
+                <span>Ensure the student has filled the bubbles dark and completely. Light markings may not be detected.</span>
+            </li>
+        </ul>
+        
+        <div style="margin-top: 32px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+            <p style="font-size: 13px; color: #94A3B8;">Need sheets? Download the official OMR template to print:</p>
+            <a href="{% url 'reports:blank_omr' %}" class="btn btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; justify-content: center;" target="_blank">
+                <i class="bi bi-file-earmark-pdf" style="color: #F57F17;"></i>
+                <span>Download Blank OMR PDF</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

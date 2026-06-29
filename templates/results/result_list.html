@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Results{% endblock %}
+
+{% block page_title %}Evaluation Results{% endblock %}
+
+{% block content %}
+<!-- Filters Card -->
+<div class="card" style="padding: 20px; margin-bottom: 20px;">
+    <form method="get" action="{% url 'results:list' %}" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: flex-end;">
+            <!-- Search -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Search</label>
+                <input type="text" name="q" class="form-control" placeholder="Name or Roll No..." value="{{ request.GET.q|default:'' }}" style="height: 38px;">
+            </div>
+            
+            <!-- School Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">School</label>
+                <select name="school" class="form-control" style="height: 38px;">
+                    <option value="">All Schools</option>
+                    {% for school in schools %}
+                        <option value="{{ school.pk }}" {% if request.GET.school == school.pk|stringformat:"i" %}selected{% endif %}>{{ school.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Group Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Group</label>
+                <select name="group" class="form-control" style="height: 38px;">
+                    <option value="">All Groups</option>
+                    <option value="JUNIOR" {% if request.GET.group == 'JUNIOR' %}selected{% endif %}>Junior</option>
+                    <option value="SENIOR" {% if request.GET.group == 'SENIOR' %}selected{% endif %}>Senior</option>
+                </select>
+            </div>
+            
+            <!-- Set Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Set</label>
+                <select name="set" class="form-control" style="height: 38px;">
+                    <option value="">All Sets</option>
+                    <option value="SET_A" {% if request.GET.set == 'SET_A' %}selected{% endif %}>Set A</option>
+                    <option value="SET_B" {% if request.GET.set == 'SET_B' %}selected{% endif %}>Set B</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 16px; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <a href="{% url 'results:list' %}" class="btn btn-secondary btn-sm">Clear Filters</a>
+                <button type="submit" class="btn btn-primary btn-sm" style="background-color: var(--accent-color);">
+                    <i class="bi bi-funnel"></i> Apply Filters
+                </button>
+            </div>
+            
+            <a href="{% url 'reports:list' %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-download"></i> Export Reports
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Results Table -->
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th style="text-align: center; width: 80px;">Rank</th>
+                <th>Roll Number</th>
+                <th>Full Name</th>
+                <th>School</th>
+                <th>Group</th>
+                <th style="text-align: center;">Score</th>
+                <th style="text-align: center;">Percentage</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+                <tr>
+                    <td style="text-align: center;">
+                        <span class="badge {% if result.rank == 1 %}badge-success{% else %}badge-info{% endif %}" style="font-size: 13px; font-weight: 700; min-width: 28px; text-align: center;">
+                            {{ result.rank }}
+                        </span>
+                    </td>
+                    <td class="table-mono" style="font-weight: 600;">{{ result.participant.roll_number }}</td>
+                    <td style="font-weight: 500;">{{ result.participant.full_name }}</td>
+                    <td>{{ result.participant.school.name }}</td>
+                    <td><span class="badge badge-info" style="background-color: #F1F5F9; color: var(--text-primary); border: 1px solid var(--border-color);">{{ result.participant.get_group_display }} ({{ result.participant.get_paper_set_display|slice:"-1:" }})</span></td>
+                    <td style="text-align: center; font-weight: 700; color: var(--accent-color); font-size: 16px;">
+                        {{ result.score }} <span style="font-size: 12px; font-weight: 500; color: var(--text-muted);">/ 50</span>
+                    </td>
+                    <td style="text-align: center; font-weight: 600;">{{ result.percentage }}%</td>
+                    <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                        <a href="{% url 'results:detail' result.pk %}" class="btn btn-secondary btn-sm" title="View Breakdown">
+                            <i class="bi bi-eye-fill"></i> View
+                        </a>
+                        <a href="{% url 'reports:individual_download' result.participant.pk %}" class="btn btn-secondary btn-sm" title="Download PDF slip" style="color: var(--accent-color);">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <i class="bi bi-check-circle" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+                        No results evaluated yet. Go to OMR Scanner to upload sheets.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+    <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 20px; margin-bottom: 40px;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query_params %}&{{ query_params }}{% endif %}" class="btn btn-secondary btn-sm"><i class="bi bi-chevron-left"></i> Previous</a>
+        {% else %}
+            <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5;"><i class="bi bi-chevron-left"></i> Previous</button>
+        {% endif %}
+        
+        <span style="font-weight: 500; font-size: 14px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query_params %}&{{ query_params }}{% endif %}" class="btn btn-secondary btn-sm">Next <i class="bi bi-chevron-right"></i></a>
+        {% else %}
+            <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5;">Next <i class="bi bi-chevron-right"></i></button>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

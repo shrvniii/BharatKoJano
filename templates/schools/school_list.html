@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Schools{% endblock %}
+
+{% block page_title %}School Management{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 20px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div style="position: relative; display: flex; align-items: center; width: 300px; max-width: 100%;">
+        <i class="bi bi-search" style="position: absolute; left: 12px; color: var(--text-muted);"></i>
+        <input type="text" id="school-search" class="form-control" placeholder="Search schools..." style="padding-left: 36px; margin-bottom: 0;">
+    </div>
+    
+    <a href="{% url 'schools:add' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i>
+        <span>Add School</span>
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table id="schools-table">
+        <thead>
+            <tr>
+                <th>School Code</th>
+                <th>School Name</th>
+                <th style="text-align: center;">Participants</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for school in schools %}
+                <tr>
+                    <td class="table-mono">{{ school.code|default:"—" }}</td>
+                    <td style="font-weight: 500;">{{ school.name }}</td>
+                    <td style="text-align: center;">
+                        <span class="badge badge-info">{{ school.participant_count }}</span>
+                    </td>
+                    <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                        <a href="{% url 'schools:edit' school.pk %}" class="btn btn-secondary btn-sm" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'schools:delete' school.pk %}" class="btn btn-danger btn-sm" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <i class="bi bi-building" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+                        No schools registered yet. Click "Add School" to get started.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('school-search');
+        const tableRows = document.querySelectorAll('#schools-table tbody tr');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase().strip ? e.target.value.toLowerCase().trim() : e.target.value.toLowerCase();
+                
+                tableRows.forEach(row => {
+                    // Check if it's the empty row
+                    if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) return;
+                    
+                    const code = row.cells[0].textContent.toLowerCase();
+                    const name = row.cells[1].textContent.toLowerCase();
+                    
+                    if (name.includes(query) || code.includes(query)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

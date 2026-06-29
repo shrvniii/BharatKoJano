@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete School - {{ school.name }}{% endblock %}
+
+{% block page_title %}Delete School{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 40px auto; border-top: 4px solid var(--danger-color);">
+    <h2 style="display: flex; align-items: center; gap: 12px; color: var(--danger-color); margin-bottom: 16px;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>Are you sure?</span>
+    </h2>
+    
+    <p style="margin-bottom: 24px; color: var(--text-primary);">
+        You are about to delete the school <strong>{{ school.name }}</strong>. This action is permanent and cannot be undone.
+    </p>
+    
+    <div class="alert alert-warning" style="margin-bottom: 24px;">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>The system will block deletion if there are any participants currently registered under this school.</span>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <a href="{% url 'schools:list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i>
+                <span>Yes, Delete School</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

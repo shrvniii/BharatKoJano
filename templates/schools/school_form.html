@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit School - {{ form.instance.name }}{% else %}Add School{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Edit School{% else %}Add School{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2 style="margin-bottom: 24px;">
+        {% if form.instance.pk %}
+            Modify School Information
+        {% else %}
+            Register New School
+        {% endif %}
+    </h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <div>
+                    <strong>Please correct the errors below:</strong>
+                    <ul style="margin-top: 8px; margin-left: 16px;">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="id_name" class="form-label required">School Name</label>
+            <input type="text" name="name" id="id_name" class="form-control" placeholder="e.g. St. Xavier's High School" value="{{ form.name.value|default:'' }}" required maxlength="100">
+            <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">The full official name of the school.</span>
+        </div>
+        
+        <div class="form-group">
+            <label for="id_code" class="form-label">School Code (Optional)</label>
+            <input type="text" name="code" id="id_code" class="form-control" placeholder="e.g. SXHS-01" value="{{ form.code.value|default:'' }}" maxlength="20">
+            <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">A short abbreviation or code to identify the school.</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <a href="{% url 'schools:list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to List</span>
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i>
+                <span>Save School</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

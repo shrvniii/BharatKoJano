@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<!-- Answer Key Configuration Warning -->
+{% if not keys_ready %}
+    <div class="alert alert-warning" style="border-left: 4px solid var(--warning-color); margin-bottom: 24px;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size: 20px;"></i>
+        <div>
+            <strong>Prerequisite Alert: Answer Keys Pending Setup!</strong>
+            <p style="margin-top: 4px; font-size: 13px;">
+                You have configured only <strong>{{ keys_configured }} of 4</strong> answer keys. 
+                Evaluation will fail if you upload an OMR sheet for a group/set combination that lacks an answer key. 
+                <a href="{% url 'answer_keys:status' %}" style="color: var(--primary-color); font-weight: 700; text-decoration: underline;">Configure them now</a>.
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Stats Grid -->
+<div class="grid-3">
+    <!-- Total Schools -->
+    <div class="card stat-card primary">
+        <div class="stat-info">
+            <span class="stat-label">Registered Schools</span>
+            <span class="stat-value">{{ total_schools }}</span>
+        </div>
+        <i class="bi bi-building stat-icon"></i>
+    </div>
+    
+    <!-- Total Participants -->
+    <div class="card stat-card primary">
+        <div class="stat-info">
+            <span class="stat-label">Total Participants</span>
+            <span class="stat-value">{{ total_participants }}</span>
+            <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                {{ junior_count }} Junior • {{ senior_count }} Senior
+            </span>
+        </div>
+        <i class="bi bi-people stat-icon"></i>
+    </div>
+    
+    <!-- Evaluation Progress -->
+    <div class="card stat-card success">
+        <div class="stat-info">
+            <span class="stat-label">Sheets Evaluated</span>
+            <span class="stat-value">{{ evaluated_count }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ {{ total_participants }}</span></span>
+        </div>
+        <i class="bi bi-check-circle-fill stat-icon" style="color: var(--success-color);"></i>
+    </div>
+</div>
+
+<div class="grid-3">
+    <!-- Pending Sheets -->
+    <div class="card stat-card warning">
+        <div class="stat-info">
+            <span class="stat-label">Pending Sheets</span>
+            <span class="stat-value">{{ pending_count }}</span>
+        </div>
+        <i class="bi bi-hourglass-split stat-icon" style="color: var(--warning-color);"></i>
+    </div>
+    
+    <!-- Average Score -->
+    <div class="card stat-card primary">
+        <div class="stat-info">
+            <span class="stat-label">Average Score</span>
+            <span class="stat-value">{{ avg_score }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+        </div>
+        <i class="bi bi-calculator stat-icon"></i>
+    </div>
+    
+    <!-- Highest Score -->
+    <div class="card stat-card success">
+        <div class="stat-info">
+            <span class="stat-label">Highest Score</span>
+            <span class="stat-value">{{ high_score }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+        </div>
+        <i class="bi bi-trophy stat-icon" style="color: var(--success-color);"></i>
+    </div>
+</div>
+
+<!-- Progress Bar Card -->
+<div class="card" style="margin-bottom: 24px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: 600; font-size: 14px;">Evaluation Completion Progress</span>
+        <span style="font-weight: 700; color: var(--success-color);">{{ progress_pct }}%</span>
+    </div>
+    <div style="width: 100%; height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden;">
+        <div style="width: {{ progress_pct }}%; height: 100%; background-color: var(--success-color); border-radius: 5px; transition: width 0.5s ease-out;"></div>
+    </div>
+</div>
+
+<div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    <!-- Recent Activity -->
+    <div class="card" style="padding: 20px;">
+        <h3 style="margin-bottom: 16px; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-clock-history"></i>
+            <span>Recent Activity Feed</span>
+        </h3>
+        
+        <div class="table-responsive" style="box-shadow: none; border: none; margin-bottom: 0;">
+            <table style="font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Candidate</th>
+                        <th>School</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for upload in recent_uploads %}
+                        <tr>
+                            <td class="table-mono">{{ upload.participant.roll_number }}</td>
+                            <td style="font-weight: 600;">{{ upload.participant.full_name }}</td>
+                            <td>{{ upload.participant.school.name|truncatechars:20 }}</td>
+                            <td style="text-align: center;">
+                                {% if upload.status == 'EVALUATED' %}
+                                    <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">Graded</span>
+                                {% elif upload.status == 'ERROR' %}
+                                    <span class="badge badge-danger" style="font-size: 10px; padding: 2px 6px;" title="{{ upload.error_message }}">Error</span>
+                                {% else %}
+                                    <span class="badge badge-warning" style="font-size: 10px; padding: 2px 6px;">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                {% if upload.status == 'EVALUATED' %}
+                                    <a href="{% url 'results:detail' upload.result.pk %}" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11px;">View</a>
+                                {% else %}
+                                    <a href="{% url 'scanner:upload' %}" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11px; color: var(--accent-color);">Retry</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                                No sheets uploaded yet.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card" style="padding: 20px;">
+        <h3 style="margin-bottom: 16px; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-lightning-charge"></i>
+            <span>Quick Actions</span>
+        </h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="{% url 'scanner:upload' %}" class="btn btn-primary" style="justify-content: flex-start; text-align: left; background-color: var(--accent-color);">
+                <i class="bi bi-camera"></i> Scan OMR Sheet
+            </a>
+            <a href="{% url 'results:list' %}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left;">
+                <i class="bi bi-check-circle"></i> View Results
+            </a>
+            <a href="{% url 'results:rankings' %}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left;">
+                <i class="bi bi-bar-chart"></i> View Leaderboards
+            </a>
+            <a href="{% url 'reports:list' %}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left;">
+                <i class="bi bi-download"></i> Download Reports
+            </a>
+            <a href="{% url 'participants:add' %}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left; font-size: 13px;">
+                <i class="bi bi-person-plus"></i> Register Student
+            </a>
+            <a href="{% url 'schools:add' %}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left; font-size: 13px;">
+                <i class="bi bi-plus-square"></i> Add School
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

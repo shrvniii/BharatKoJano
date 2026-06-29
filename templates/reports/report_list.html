@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports{% endblock %}
+
+{% block page_title %}Reports & Exports{% endblock %}
+
+{% block content %}
+<div class="grid-3" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;">
+    
+    <!-- Individual Result Slip -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid var(--accent-color);">
+        <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-file-earmark-person-fill" style="color: var(--accent-color);"></i>
+                <span>Individual Result Slip</span>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Generates a single-page A4 performance slip with student details, final score, rank, and a detailed question-by-question response breakdown.
+            </p>
+            <div class="form-group" style="margin-bottom: 0;">
+                <select id="individual-select" class="form-control" style="height: 38px; font-size: 13px;">
+                    <option value="">Select Student...</option>
+                    {% for p in participants %}
+                        <option value="{{ p.pk }}">{{ p.roll_number }} - {{ p.full_name }}</option>
+                    {% empty %}
+                        <option value="">No evaluated students</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; display: flex; justify-content: flex-end;">
+            <button onclick="downloadIndividual()" class="btn btn-primary btn-sm" id="individual-btn" disabled>
+                <i class="bi bi-download"></i> Download PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- School-wise Performance Report -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid var(--accent-color);">
+        <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-building-fill" style="color: var(--accent-color);"></i>
+                <span>School Performance Report</span>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Generates a report for all students from a specific school, grouped into Junior and Senior categories, showing scores and school-level ranks.
+            </p>
+            <div class="form-group" style="margin-bottom: 0;">
+                <select id="school-select" class="form-control" style="height: 38px; font-size: 13px;">
+                    <option value="">Select School...</option>
+                    {% for school in schools %}
+                        <option value="{{ school.pk }}">{{ school.name }}</option>
+                    {% empty %}
+                        <option value="">No schools registered</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; display: flex; justify-content: flex-end;">
+            <button onclick="downloadSchool()" class="btn btn-primary btn-sm" id="school-btn" disabled>
+                <i class="bi bi-download"></i> Download PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Junior Leaderboard -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid var(--success-color);">
+        <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-award-fill" style="color: var(--success-color);"></i>
+                <span>Junior Leaderboard</span>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Generates the official standings PDF for all participants in the Junior category, sorted by rank.
+            </p>
+        </div>
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; justify-content: flex-end;">
+            <a href="{% url 'reports:ranking_download' 'JUNIOR' %}" class="btn btn-primary btn-sm" style="background-color: var(--success-color);">
+                <i class="bi bi-download"></i> Download PDF
+            </a>
+        </div>
+    </div>
+    
+    <!-- Senior Leaderboard -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid var(--success-color);">
+        <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-award-fill" style="color: var(--success-color);"></i>
+                <span>Senior Leaderboard</span>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Generates the official standings PDF for all participants in the Senior category, sorted by rank.
+            </p>
+        </div>
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; justify-content: flex-end;">
+            <a href="{% url 'reports:ranking_download' 'SENIOR' %}" class="btn btn-primary btn-sm" style="background-color: var(--success-color);">
+                <i class="bi bi-download"></i> Download PDF
+            </a>
+        </div>
+    </div>
+    
+    <!-- Master CSV Standing -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid var(--action-color);">
+        <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--action-color);"></i>
+                <span>Master Standings (CSV)</span>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Exports the entire database of participant scores, ranks, and metadata (unanswered/multi-marked counts) into a CSV file for Microsoft Excel or archival purposes.
+            </p>
+        </div>
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; justify-content: flex-end;">
+            <a href="{% url 'reports:csv_download' %}" class="btn btn-primary btn-sm" style="background-color: var(--action-color);">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+            </a>
+        </div>
+    </div>
+    
+    <!-- Blank OMR Sheet PDF -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid #475569;">
+        <div>
+            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-file-earmark-pdf-fill" style="color: #475569;"></i>
+                <span>Blank OMR Template</span>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Downloads the official 50-question A4 OMR sheet template. Print this sheet for students to fill out in the competition.
+            </p>
+        </div>
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; justify-content: flex-end;">
+            <a href="{% url 'reports:blank_omr' %}" class="btn btn-secondary btn-sm" style="border-color: #475569; color: #475569;">
+                <i class="bi bi-printer"></i> Download OMR PDF
+            </a>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const indSelect = document.getElementById('individual-select');
+    const indBtn = document.getElementById('individual-btn');
+    const schSelect = document.getElementById('school-select');
+    const schBtn = document.getElementById('school-btn');
+    
+    if (indSelect && indBtn) {
+        indSelect.addEventListener('change', function() {
+            indBtn.disabled = !this.value;
+        });
+    }
+    
+    if (schSelect && schBtn) {
+        schSelect.addEventListener('change', function() {
+            schBtn.disabled = !this.value;
+        });
+    }
+    
+    function downloadIndividual() {
+        const val = indSelect.value;
+        if (val) {
+            window.location.href = `/reports/download/individual/${val}/`;
+        }
+    }
+    
+    function downloadSchool() {
+        const val = schSelect.value;
+        if (val) {
+            window.location.href = `/reports/download/school/${val}/`;
+        }
+    }
+</script>
+{% endblock %}

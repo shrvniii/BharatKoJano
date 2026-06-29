@@ -1,0 +1,273 @@
+import cv2
+import numpy as np
+from django.db import transaction
+from django.utils import timezone
+from .models import OMRSubmission
+from results.models import Result
+from answer_keys.models import AnswerKey
+
+def detect_anchors(img_gray):
+    # Apply Gaussian blur and adaptive thresholding to get binary image
+    blurred = cv2.GaussianBlur(img_gray, (5, 5), 0)
+    thresh = cv2.adaptiveThreshold(
+        blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+        cv2.THRESH_BINARY_INV, 11, 2
+    )
+    
+    # Find contours
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    img_h, img_w = img_gray.shape
+    min_area = (img_w * img_h) * 0.0001  # At least 0.01% of image
+    max_area = (img_w * img_h) * 0.01    # At most 1% of image
+    
+    candidates = []
+    for c in contours:
+        area = cv2.contourArea(c)
+        if min_area < area < max_area:
+            # Check aspect ratio
+            x, y, w, h = cv2.boundingRect(c)
+            aspect_ratio = float(w) / h
+            
+            if 0.8 <= aspect_ratio <= 1.2:
+                # Check solidity (squareness)
+                rect_area = w * h
+                solidity = float(area) / rect_area
+                if solidity > 0.8:
+                    # Store center point and the contour
+                    cx = x + w / 2
+                    cy = y + h / 2
+                    candidates.append((cx, cy))
+                    
+    if len(candidates) < 4:
+        raise ValueError(f"Could not find all 4 corner registration marks. Found {len(candidates)} candidates.")
+        
+    # If we have more than 4 candidates, filter to keep the ones closest to the corners of the image
+    corners = [
+        (0, 0),          # Top-Left
+        (img_w, 0),      # Top-Right
+        (0, img_h),      # Bottom-Left
+        (img_w, img_h)   # Bottom-Right
+    ]
+    
+    selected_anchors = []
+    for corner in corners:
+        # Find candidate closest to this corner
+        best_candidate = min(candidates, key=lambda pt: (pt[0] - corner[0])**2 + (pt[1] - corner[1])**2)
+        selected_anchors.append(best_candidate)
+        
+    # Order of selected_anchors is: TL, TR, BL, BR
+    return np.array(selected_anchors, dtype="float32")
+
+def warp_image(img, anchors):
+    # Standard warped size
+    width, height = 1000, 1200
+    
+    # Source points (anchors)
+    # Order: Top-Left, Top-Right, Bottom-Left, Bottom-Right
+    sorted_by_y = anchors[np.argsort(anchors[:, 1])]
+    
+    # Top points are the two with smaller y
+    top = sorted_by_y[:2]
+    tl = top[np.argmin(top[:, 0])]
+    tr = top[np.argmax(top[:, 0])]
+    
+    # Bottom points are the two with larger y
+    bottom = sorted_by_y[2:]
+    bl = bottom[np.argmin(bottom[:, 0])]
+    br = bottom[np.argmax(bottom[:, 0])]
+    
+    src = np.array([tl, tr, bl, br], dtype="float32")
+    
+    # Destination points
+    dst = np.array([
+        [0, 0],
+        [width - 1, 0],
+        [0, height - 1],
+        [width - 1, height - 1]
+    ], dtype="float32")
+    
+    # Compute perspective transform matrix and warp
+    M = cv2.getPerspectiveTransform(src, dst)
+    warped = cv2.warpPerspective(img, M, (width, height))
+    
+    return warped
+
+def get_row_y_coordinate(r):
+    """
+    Returns the Y coordinate (in PDF points) for a given row index r (0 to 24).
+    Matches the formula in omr_generator.py.
+    """
+    block_idx = r // 5
+    row_in_block = r % 5
+    return 590 - (block_idx * 105) - (row_in_block * 18)
+
+def evaluate_sheet(warped_gray):
+    # Coordinates mapping in 1000x1200 space
+    # Left Column (Q1 - Q25) centers (corresponds to col1_x = 225 pt in PDF)
+    # WX = (PX - 40) * 1000 / 515 -> 225, 247, 269, 291 -> 359, 402, 445, 487
+    col1_x_centers = [359, 402, 445, 487]
+    
+    # Right Column (Q26 - Q50) centers (corresponds to col2_x = 410 pt in PDF)
+    # WX = (PX - 40) * 1000 / 515 -> 410, 432, 454, 476 -> 718, 761, 804, 847
+    col2_x_centers = [718, 761, 804, 847]
+    
+    # Y-coordinates in warped pixels (WY = (660 - PY) * 2)
+    row_y_centers = [int((660 - get_row_y_coordinate(r)) * 2) for r in range(25)]
+    
+    bubble_r = 10  # Radius in pixels (slightly smaller to match smaller bubbles)
+    
+    detected_answers = []
+    
+    # Apply Otsu's thresholding to get a clean binary image
+    # Invert so bubbles are white (255) and paper is black (0)
+    _, thresh = cv2.threshold(warped_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+    def check_question(x_centers, y):
+        bubble_stats = []
+        
+        for idx, cx in enumerate(x_centers):
+            # Crop bubble region
+            x1 = cx - bubble_r
+            y1 = y - bubble_r
+            x2 = cx + bubble_r
+            y2 = y + bubble_r
+            
+            bubble_crop = thresh[y1:y2, x1:x2]
+            
+            # Create circular mask
+            mask = np.zeros(bubble_crop.shape, dtype="uint8")
+            cv2.circle(mask, (bubble_r, bubble_r), bubble_r - 2, 255, -1)
+            
+            # Calculate percentage of filled pixels in the mask area
+            masked_crop = cv2.bitwise_and(bubble_crop, bubble_crop, mask=mask)
+            total_pixels = cv2.countNonZero(mask)
+            filled_pixels = cv2.countNonZero(masked_crop)
+            
+            fill_ratio = float(filled_pixels) / total_pixels
+            bubble_stats.append(fill_ratio)
+            
+        # Determine which bubbles are filled
+        # Threshold for a filled bubble: > 30% fill ratio
+        fill_threshold = 0.30
+        filled_indices = [i + 1 for i, ratio in enumerate(bubble_stats) if ratio > fill_threshold]
+        
+        if len(filled_indices) == 1:
+            return filled_indices[0]  # Exactly one bubble filled (1 = A, 2 = B, 3 = C, 4 = D)
+        elif len(filled_indices) == 0:
+            return 0  # Unanswered
+        else:
+            return 5  # Multi-marked
+            
+    # Process Q1 - Q25
+    for r in range(25):
+        y = row_y_centers[r]
+        ans = check_question(col1_x_centers, y)
+        detected_answers.append(ans)
+        
+    # Process Q26 - Q50
+    for r in range(25):
+        y = row_y_centers[r]
+        ans = check_question(col2_x_centers, y)
+        detected_answers.append(ans)
+        
+    return detected_answers
+
+def evaluate_and_grade_submission(submission_id):
+    """
+    Main pipeline to grade a submission within a database transaction.
+    """
+    with transaction.atomic():
+        submission = OMRSubmission.objects.select_for_update().get(pk=submission_id)
+        
+        try:
+            # Load image using OpenCV
+            image_path = submission.image.path
+            img = cv2.imread(image_path)
+            if img is None:
+                raise ValueError("Could not load image file.")
+                
+            # Convert to grayscale
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            
+            # Step 1: Detect anchors
+            anchors = detect_anchors(gray)
+            
+            # Step 2: Warp perspective
+            warped = warp_image(gray, anchors)
+            
+            # Step 3: Evaluate bubbles
+            detected_answers = evaluate_sheet(warped)
+            
+            # Step 4: Compare against answer key
+            answer_key = submission.answer_key
+            correct_answers = answer_key.answers
+            
+            score = 0
+            unanswered_count = 0
+            multi_marked_count = 0
+            question_breakdown = []
+            
+            option_map = {1: 'A', 2: 'B', 3: 'C', 4: 'D', 0: '—', 5: 'MULTI'}
+            
+            for i in range(50):
+                detected = detected_answers[i]
+                correct = correct_answers[i]
+                
+                status = "incorrect"
+                if detected == correct:
+                    score += 1
+                    status = "correct"
+                elif detected == 0:
+                    unanswered_count += 1
+                    status = "unanswered"
+                elif detected == 5:
+                    multi_marked_count += 1
+                    status = "multi-marked"
+                    
+                question_breakdown.append({
+                    "q_no": i + 1,
+                    "detected": option_map.get(detected, '—'),
+                    "correct": option_map.get(correct, '—'),
+                    "status": status
+                })
+                
+            # Calculate percentage
+            percentage = (score / 50) * 100
+            
+            # Save OMRSubmission details
+            submission.detected_answers = detected_answers
+            submission.status = 'EVALUATED'
+            submission.error_message = None
+            submission.save()
+            
+            # Save or update Result
+            Result.objects.update_or_create(
+                submission=submission,
+                defaults={
+                    'participant': submission.participant,
+                    'score': score,
+                    'percentage': percentage,
+                    'unanswered_count': unanswered_count,
+                    'multi_marked_count': multi_marked_count,
+                    'question_breakdown': question_breakdown
+                }
+            )
+            
+            # Lock the answer key so it cannot be edited
+            if not answer_key.is_locked:
+                answer_key.is_locked = True
+                answer_key.save()
+                
+            return True, "Evaluation completed successfully."
+            
+        except Exception as e:
+            # Mark submission as ERROR
+            submission.status = 'ERROR'
+            submission.error_message = str(e)
+            submission.save()
+            
+            # Delete any existing Result if it failed this time
+            Result.objects.filter(submission=submission).delete()
+            
+            return False, f"Evaluation failed: {str(e)}"

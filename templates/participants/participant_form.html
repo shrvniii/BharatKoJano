@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Participant - {{ form.instance.full_name }}{% else %}Register Participant{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Edit Participant{% else %}Register Participant{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+    <h2 style="margin-bottom: 24px;">
+        {% if form.instance.pk %}
+            Modify Participant Details
+        {% else %}
+            Register New Participant
+        {% endif %}
+    </h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <div>
+                    <strong>Please correct the errors below:</strong>
+                    <ul style="margin-top: 8px; margin-left: 16px;">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="form-row">
+            <!-- Roll Number -->
+            <div class="form-group">
+                <label for="{{ form.roll_number.id_for_label }}" class="form-label required">Roll Number</label>
+                {{ form.roll_number }}
+                {% if form.roll_number.help_text %}
+                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">{{ form.roll_number.help_text }}</span>
+                {% else %}
+                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">Must be unique across the competition.</span>
+                {% endif %}
+            </div>
+            
+            <!-- Full Name -->
+            <div class="form-group">
+                <label for="{{ form.full_name.id_for_label }}" class="form-label required">Full Name</label>
+                {{ form.full_name }}
+                <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">First and last name of the student.</span>
+            </div>
+        </div>
+        
+        <!-- School Selection -->
+        <div class="form-group">
+            <label for="{{ form.school.id_for_label }}" class="form-label required">School</label>
+            {{ form.school }}
+            <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">Select the school this participant represents.</span>
+        </div>
+        
+        <div class="form-row">
+            <!-- Group Selection -->
+            <div class="form-group">
+                <label for="{{ form.group.id_for_label }}" class="form-label required">Participant Group</label>
+                {{ form.group }}
+                <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">Junior (typically grades 6-8) or Senior (grades 9-12).</span>
+            </div>
+            
+            <!-- Paper Set Selection -->
+            <div class="form-group">
+                <label for="{{ form.paper_set.id_for_label }}" class="form-label required">Question Paper Set</label>
+                {{ form.paper_set }}
+                <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">Set A or Set B. Controls which answer key is applied.</span>
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <a href="{% url 'participants:list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to List</span>
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i>
+                <span>Save Participant</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

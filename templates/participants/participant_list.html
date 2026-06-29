@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Participants{% endblock %}
+
+{% block page_title %}Participant Management{% endblock %}
+
+{% block content %}
+<!-- Filters Card -->
+<div class="card" style="padding: 20px; margin-bottom: 20px;">
+    <form method="get" action="{% url 'participants:list' %}" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: flex-end;">
+            <!-- Search -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Search</label>
+                <input type="text" name="q" class="form-control" placeholder="Name or Roll No..." value="{{ request.GET.q|default:'' }}" style="height: 38px;">
+            </div>
+            
+            <!-- School Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">School</label>
+                <select name="school" class="form-control" style="height: 38px;">
+                    <option value="">All Schools</option>
+                    {% for school in schools %}
+                        <option value="{{ school.pk }}" {% if request.GET.school == school.pk|stringformat:"i" %}selected{% endif %}>{{ school.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Group Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Group</label>
+                <select name="group" class="form-control" style="height: 38px;">
+                    <option value="">All Groups</option>
+                    <option value="JUNIOR" {% if request.GET.group == 'JUNIOR' %}selected{% endif %}>Junior</option>
+                    <option value="SENIOR" {% if request.GET.group == 'SENIOR' %}selected{% endif %}>Senior</option>
+                </select>
+            </div>
+            
+            <!-- Set Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Set</label>
+                <select name="set" class="form-control" style="height: 38px;">
+                    <option value="">All Sets</option>
+                    <option value="SET_A" {% if request.GET.set == 'SET_A' %}selected{% endif %}>Set A</option>
+                    <option value="SET_B" {% if request.GET.set == 'SET_B' %}selected{% endif %}>Set B</option>
+                </select>
+            </div>
+            
+            <!-- Status Filter -->
+            <div>
+                <label class="form-label" style="font-size: 12px; text-transform: uppercase;">OMR Status</label>
+                <select name="status" class="form-control" style="height: 38px;">
+                    <option value="">All Statuses</option>
+                    <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending Upload</option>
+                    <option value="EVALUATED" {% if request.GET.status == 'EVALUATED' %}selected{% endif %}>Evaluated</option>
+                    <option value="ERROR" {% if request.GET.status == 'ERROR' %}selected{% endif %}>Error</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 16px; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <a href="{% url 'participants:list' %}" class="btn btn-secondary btn-sm">Clear Filters</a>
+                <button type="submit" class="btn btn-primary btn-sm" style="background-color: var(--accent-color);">
+                    <i class="bi bi-funnel"></i> Apply Filters
+                </button>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <a href="{% url 'participants:import' %}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-upload"></i> Bulk Import
+                </a>
+                <a href="{% url 'participants:add' %}" class="btn btn-primary btn-sm" style="background-color: var(--accent-color);">
+                    <i class="bi bi-plus-circle"></i> Register Participant
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Participants Table -->
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Roll Number</th>
+                <th>Full Name</th>
+                <th>School</th>
+                <th>Group</th>
+                <th>Paper Set</th>
+                <th>OMR Status</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+                <tr>
+                    <td class="table-mono" style="font-weight: 600;">{{ participant.roll_number }}</td>
+                    <td style="font-weight: 500;">{{ participant.full_name }}</td>
+                    <td>{{ participant.school.name }}</td>
+                    <td><span class="badge badge-info">{{ participant.get_group_display }}</span></td>
+                    <td><span class="badge badge-info">{{ participant.get_paper_set_display }}</span></td>
+                    <td>
+                        {% if not participant.omr_submission %}
+                            <span class="badge badge-warning">Pending</span>
+                        {% elif participant.omr_submission.status == 'EVALUATED' %}
+                            <span class="badge badge-success">Evaluated</span>
+                        {% elif participant.omr_submission.status == 'ERROR' %}
+                            <span class="badge badge-danger" title="{{ participant.omr_submission.error_message }}">Error</span>
+                        {% else %}
+                            <span class="badge badge-warning">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                        {% if participant.omr_submission and participant.omr_submission.status == 'EVALUATED' %}
+                            <a href="{% url 'results:detail' participant.omr_submission.result.pk %}" class="btn btn-secondary btn-sm" title="View Result" style="color: var(--success-color);">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'participants:edit' participant.pk %}" class="btn btn-secondary btn-sm" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if not participant.omr_submission %}
+                            <a href="{% url 'participants:delete' participant.pk %}" class="btn btn-danger btn-sm" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;" title="Cannot delete: OMR sheet exists">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <i class="bi bi-people" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+                        No participants found matching the criteria.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+    <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 20px; margin-bottom: 40px;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query_params %}&{{ query_params }}{% endif %}" class="btn btn-secondary btn-sm"><i class="bi bi-chevron-left"></i> Previous</a>
+        {% else %}
+            <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5;"><i class="bi bi-chevron-left"></i> Previous</button>
+        {% endif %}
+        
+        <span style="font-weight: 500; font-size: 14px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query_params %}&{{ query_params }}{% endif %}" class="btn btn-secondary btn-sm">Next <i class="bi bi-chevron-right"></i></a>
+        {% else %}
+            <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5;">Next <i class="bi bi-chevron-right"></i></button>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}
