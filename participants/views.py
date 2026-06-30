@@ -150,6 +150,23 @@ class ParticipantImportView(LoginRequiredMixin, View):
                     error_rows.append(f"Row {row_num}: Roll Number, Name, and School Name are required.")
                     continue
                     
+                # Validate roll number format (exactly 5 digits)
+                if not roll_number.isdigit() or len(roll_number) != 5:
+                    error_rows.append(f"Row {row_num} (Roll {roll_number}): Roll number must be exactly 5 digits.")
+                    continue
+                    
+                roll_school_code = roll_number[:2]
+                roll_suffix = roll_number[2:]
+                
+                try:
+                    suffix_val = int(roll_suffix)
+                    if not (0 <= suffix_val <= 199):
+                        error_rows.append(f"Row {row_num} (Roll {roll_number}): The last 3 digits of the roll number must be between 000 and 199.")
+                        continue
+                except ValueError:
+                    error_rows.append(f"Row {row_num} (Roll {roll_number}): The last 3 digits of the roll number must be numeric.")
+                    continue
+                    
                 # Map group (ignore spaces and underscores)
                 group_clean = group_raw.replace(' ', '').replace('_', '')
                 if 'JUNIOR' in group_clean:
@@ -180,13 +197,21 @@ class ParticipantImportView(LoginRequiredMixin, View):
                         # Get or create school
                         school, created = School.objects.get_or_create(name=school_name)
                         if created:
-                            # Generate a simple code for the school automatically
-                            words = school_name.split()
-                            code = "".join([w[0].upper() for w in words if w[0].isalnum()])[:10]
-                            # Make sure code is unique, otherwise leave empty
-                            if not School.objects.filter(code=code).exists():
-                                school.code = code
+                            # Assign the school code from the roll number
+                            if School.objects.filter(code=roll_school_code).exists():
+                                raise ValueError(f"School code '{roll_school_code}' is already assigned to another school.")
+                            school.code = roll_school_code
+                            school.save()
+                        else:
+                            # Verify that the school's code matches the roll number's prefix
+                            if not school.code:
+                                # Set it automatically if not set
+                                if School.objects.filter(code=roll_school_code).exists():
+                                    raise ValueError(f"School code '{roll_school_code}' is already assigned to another school.")
+                                school.code = roll_school_code
                                 school.save()
+                            elif school.code != roll_school_code:
+                                raise ValueError(f"School '{school_name}' already has code '{school.code}'. Roll number prefix '{roll_school_code}' does not match.")
                                 
                         # Create participant
                         Participant.objects.create(
@@ -198,7 +223,7 @@ class ParticipantImportView(LoginRequiredMixin, View):
                         )
                         success_count += 1
                 except Exception as e:
-                    error_rows.append(f"Row {row_num} (Roll {roll_number}): Database error: {str(e)}")
+                    error_rows.append(f"Row {row_num} (Roll {roll_number}): {str(e)}")
 
             # Report results
             if success_count > 0:
@@ -226,16 +251,25 @@ class DownloadSampleCSVView(LoginRequiredMixin, View):
         writer = csv.writer(response)
         writer.writerow(['roll_number', 'full_name', 'school_name', 'group', 'paper_set'])
         
-        # 4 mock schools to distribute students across
-        schools = ['St. Xavier School', 'Brighton Academy', 'Greenwood High', 'Oakridge School']
+        # 4 mock schools with codes: 01, 02, 03, 04
+        schools = [
+            ('St. Xavier School', '01'),
+            ('Brighton Academy', '02'),
+            ('Greenwood High', '03'),
+            ('Oakridge School', '04')
+        ]
         
-        for i in range(1, 101):
-            roll = str(1000 + i)
-            name = f"Candidate {i}"
-            school = schools[(i - 1) % len(schools)]
-            group = 'Junior' if i <= 50 else 'Senior'  # 50 Juniors, 50 Seniors
-            paper_set = 'Set A' if i % 2 == 1 else 'Set B'  # Alternate Set A and Set B
-            
-            writer.writerow([roll, name, school, group, paper_set])
+        # We have 100 students. Let's distribute them.
+        # For each school, we will generate students with roll numbers like school_code + 3-digit index (e.g. 01000 to 01024)
+        for school_idx, (school_name, school_code) in enumerate(schools):
+            for student_idx in range(25):
+                # 25 students per school = 100 total
+                student_id = school_idx * 25 + student_idx + 1
+                roll = f"{school_code}{student_idx:03d}"  # e.g., "01000" to "01024"
+                name = f"Candidate {student_id}"
+                group = 'Junior' if student_idx < 13 else 'Senior'  # roughly half/half
+                paper_set = 'Set A' if student_idx % 2 == 0 else 'Set B'
+                
+                writer.writerow([roll, name, school_name, group, paper_set])
             
         return response

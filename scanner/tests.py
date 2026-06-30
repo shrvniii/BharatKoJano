@@ -13,9 +13,9 @@ from scanner.evaluator import evaluate_and_grade_submission, get_row_y_coordinat
 class OMRPipelineTestCase(TestCase):
     def setUp(self):
         # Create school and participant
-        self.school = School.objects.create(name="Test Academy", code="TA")
+        self.school = School.objects.create(name="Test Academy", code="02")
         self.participant = Participant.objects.create(
-            roll_number="202601",
+            roll_number="02001",
             full_name="Bob Jones",
             school=self.school,
             group="JUNIOR",

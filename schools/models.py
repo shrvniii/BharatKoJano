@@ -6,5 +6,13 @@ class School(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        super().clean()
+        if self.code:
+            if not self.code.isdigit() or len(self.code) != 2:
+                from django.core.exceptions import ValidationError
+                raise ValidationError({'code': 'School code must be exactly 2 digits (e.g., 01, 02, ..., 38).'})
+
     def __str__(self):
         return self.name
+
