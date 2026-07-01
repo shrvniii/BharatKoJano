@@ -18,8 +18,8 @@ def detect_anchors(img_gray):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     img_h, img_w = img_gray.shape
-    min_area = (img_w * img_h) * 0.0001  # At least 0.01% of image
-    max_area = (img_w * img_h) * 0.01    # At most 1% of image
+    min_area = (img_w * img_h) * 0.00005  # Loosened min area (0.005%)
+    max_area = (img_w * img_h) * 0.02     # Loosened max area (2%)
     
     candidates = []
     for c in contours:
@@ -29,14 +29,14 @@ def detect_anchors(img_gray):
             x, y, w, h = cv2.boundingRect(c)
             aspect_ratio = float(w) / h
             
-            # Loosened aspect ratio for scanned sheets
-            if 0.7 <= aspect_ratio <= 1.3:
+            # Loosened aspect ratio (0.5 to 2.0) to handle phone photo perspective distortion
+            if 0.5 <= aspect_ratio <= 2.0:
                 # Check solidity (squareness)
                 rect_area = w * h
                 solidity = float(area) / rect_area if rect_area > 0 else 0
                 
-                # Loosened solidity threshold (0.4) to support L-shaped bracket crop marks (solidity ~0.55-0.6)
-                if solidity > 0.4:
+                # Loosened solidity threshold (0.2) to support L-shaped brackets and degraded print quality
+                if solidity > 0.2:
                     # Store center point
                     cx = x + w / 2
                     cy = y + h / 2
