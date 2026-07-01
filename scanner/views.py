@@ -1,12 +1,16 @@
 from django.shortcuts import render, redirect
+import os
+import shutil
+from django.conf import settings
 from django.views import View
 from django.views.generic import DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
-from .models import OMRSubmission
+from .models import OMRSubmission, BatchProcess
 from .forms import OMRUploadForm
 from .evaluator import evaluate_and_grade_submission
+from .batch_processor import safe_extract_zip, start_batch_processing
 from answer_keys.models import AnswerKey
 
 class OMRUploadView(LoginRequiredMixin, View):
@@ -72,47 +76,60 @@ class BulkUploadView(LoginRequiredMixin, View):
         if not uploaded_file:
             return JsonResponse({"error": "No file uploaded"}, status=400)
             
-        if not uploaded_file.name.lower().endswith('.zip'):
-            return JsonResponse({"error": "Only ZIP files are supported"}, status=400)
+        # Check file extension (accept both .zip and .pdf)
+        file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if file_ext not in ['.zip', '.pdf']:
+            return JsonResponse({"error": "Only ZIP and PDF files are supported"}, status=400)
             
         # Max size limit 100MB
         if uploaded_file.size > 100 * 1024 * 1024:
-            return JsonResponse({"error": "ZIP exceeds maximum size limit"}, status=400)
+            return JsonResponse({"error": "File exceeds maximum size limit (100MB)"}, status=400)
             
         # Generate batch ID
         import uuid
         batch_id = uuid.uuid4().hex[:12]
         
-        # Save ZIP temporarily and extract
-        from django.conf import settings
-        import os
-        import shutil
-        from .batch_processor import safe_extract_zip, start_batch_processing
-        from .models import BatchProcess
+        # Save file temporarily and extract
         
         temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_batches', batch_id)
         extract_path = os.path.join(temp_dir, 'extracted')
         os.makedirs(extract_path, exist_ok=True)
         
-        zip_file_path = os.path.join(temp_dir, 'batch.zip')
+        temp_file_path = os.path.join(temp_dir, f'batch{file_ext}')
         try:
-            with open(zip_file_path, 'wb') as f:
+            with open(temp_file_path, 'wb') as f:
                 for chunk in uploaded_file.chunks():
                     f.write(chunk)
                     
-            # Extract ZIP
-            safe_extract_zip(zip_file_path, extract_path)
+            if file_ext == '.zip':
+                # Extract ZIP
+                safe_extract_zip(temp_file_path, extract_path)
+            else:
+                # Process PDF: Extract pages as PNG images
+                import fitz
+                doc = fitz.open(temp_file_path)
+                if len(doc) == 0:
+                    raise ValueError("The uploaded PDF file is empty.")
+                    
+                for page_num in range(len(doc)):
+                    page = doc.load_page(page_num)
+                    # Render page to a high-resolution pixmap (150 DPI is ideal)
+                    pix = page.get_pixmap(dpi=150)
+                    img_name = f"page_{page_num+1:03d}.png"
+                    img_path = os.path.join(extract_path, img_name)
+                    pix.save(img_path)
+                doc.close()
         except ValueError as val_err:
             shutil.rmtree(temp_dir, ignore_errors=True)
             return JsonResponse({"error": str(val_err)}, status=400)
         except Exception as e:
             shutil.rmtree(temp_dir, ignore_errors=True)
-            return JsonResponse({"error": f"Invalid ZIP file: {str(e)}"}, status=400)
+            return JsonResponse({"error": f"Invalid file format: {str(e)}"}, status=400)
             
-        # Clean up temporary ZIP file immediately after extraction
-        if os.path.exists(zip_file_path):
+        # Clean up temporary file immediately after extraction
+        if os.path.exists(temp_file_path):
             try:
-                os.remove(zip_file_path)
+                os.remove(temp_file_path)
             except Exception:
                 pass
                 

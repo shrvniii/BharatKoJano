@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 import os
+import shutil
+import io
+from unittest.mock import patch
 from django.test import TestCase
 from django.core.files.base import ContentFile
 from schools.models import School
@@ -210,7 +213,7 @@ class BulkOMRUploadTestCase(TestCase):
         bad_file.name = "test.txt"
         response = self.client.post(reverse('api_bulk_upload'), {'file': bad_file})
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Only ZIP files are supported", response.json()['error'])
+        self.assertIn("Only ZIP and PDF files are supported", response.json()['error'])
 
     def test_batch_processing_execution(self):
         # Construct a mock OMR sheet image
@@ -319,4 +322,120 @@ class BulkOMRUploadTestCase(TestCase):
         shutil.rmtree(os.path.join(settings.MEDIA_ROOT, 'temp_batches_test'), ignore_errors=True)
                 
         print("Bulk OMR pipeline unit test passed successfully!")
+
+    @patch('scanner.views.start_batch_processing')
+    def test_batch_processing_pdf_execution(self, mock_start):
+        import tempfile
+        from reportlab.pdfgen import canvas
+        
+        # Construct a mock OMR sheet image
+        img = np.ones((1200, 1000, 3), dtype="uint8") * 255
+        
+        # Draw anchors
+        cv2.rectangle(img, (42, 42), (58, 58), (0, 0, 0), -1)   # TL
+        cv2.rectangle(img, (942, 42), (958, 58), (0, 0, 0), -1) # TR
+        cv2.rectangle(img, (42, 1142), (58, 1158), (0, 0, 0), -1) # BL
+        cv2.rectangle(img, (942, 1142), (958, 1158), (0, 0, 0), -1) # BR
+        
+        # Draw Roll No bubbles for "03001"
+        roll_digits = [0, 3, 0, 0, 1]
+        roll_x_centers = [76, 111, 146, 181, 216]
+        
+        for col_idx, digit in enumerate(roll_digits):
+            cx = roll_x_centers[col_idx]
+            ox = int(50 + cx * 0.9)
+            
+            for row_idx in range(10):
+                cy = 260 + row_idx * 36
+                oy = int(50 + cy * (1100.0 / 1200.0))
+                
+                if row_idx == digit:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), -1) # Filled
+                else:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)  # Empty
+        
+        # Draw question bubbles (all set to A/1)
+        col1_x_centers = [359, 402, 445, 487]
+        col2_x_centers = [718, 761, 804, 847]
+        row_y_centers = [int((660 - get_row_y_coordinate(r)) * 2) for r in range(25)]
+        
+        for q in range(50):
+            col = 0 if q < 25 else 1
+            row_idx = q if q < 25 else q - 25
+            
+            x_centers = col1_x_centers if col == 0 else col2_x_centers
+            wy = row_y_centers[row_idx]
+            oy = int(50 + wy * (1100.0 / 1200.0))
+            
+            # Bubble index 1 (which is A) is filled
+            for bubble_idx in range(1, 5):
+                wx = x_centers[bubble_idx - 1]
+                ox = int(50 + wx * 0.9)
+                if bubble_idx == 1:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), -1)
+                else:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)
+                    
+        # Write mock image to temporary file
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_img:
+            cv2.imwrite(tmp_img.name, img)
+            tmp_img_name = tmp_img.name
+            
+        # Draw image onto ReportLab PDF canvas
+        pdf_buffer = io.BytesIO()
+        c = canvas.Canvas(pdf_buffer, pagesize=(1000, 1200))
+        c.drawImage(tmp_img_name, 0, 0, width=1000, height=1200)
+        c.showPage()
+        c.save()
+        
+        # Cleanup temporary image file
+        try:
+            os.remove(tmp_img_name)
+        except Exception:
+            pass
+            
+        pdf_buffer.seek(0)
+        
+        # Post request with PDF using SimpleUploadedFile to provide name and content-type
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        pdf_file = SimpleUploadedFile("batch.pdf", pdf_buffer.getvalue(), content_type="application/pdf")
+        response = self.client.post(reverse('api_bulk_upload'), {'file': pdf_file})
+        self.assertEqual(response.status_code, 200)
+        batch_id = response.json()['batchId']
+        self.assertIsNotNone(batch_id)
+        
+        # Wait/retrieve progress (synchronous test check)
+        from django.conf import settings
+        from .batch_processor import process_batch_async
+        
+        temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_batches', batch_id)
+        extract_path = os.path.join(temp_dir, 'extracted')
+        
+        # Verify Batch record was created in views and exists
+        batch = BatchProcess.objects.get(batch_id=batch_id)
+        self.assertEqual(batch.status, 'queued')
+        
+        # Since the background process was triggered in view but thread is async,
+        # we can run the processing step synchronously for test verification
+        valid_files = sorted(os.listdir(extract_path))
+        self.assertEqual(len(valid_files), 1)
+        self.assertEqual(valid_files[0], 'page_001.png')
+        
+        process_batch_async(batch_id, extract_path, valid_files)
+        
+        # Refresh and verify results
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, 'completed')
+        self.assertEqual(batch.total, 1)
+        self.assertEqual(batch.success, 1)
+        self.assertEqual(batch.failed, 0)
+        self.assertEqual(batch.percentage, 100)
+        
+        # Cleanup files on disk
+        for sub in OMRSubmission.objects.all():
+            if sub.image and os.path.exists(sub.image.path):
+                os.remove(sub.image.path)
+        shutil.rmtree(os.path.join(settings.MEDIA_ROOT, 'temp_batches', batch_id), ignore_errors=True)
+        print("Bulk OMR PDF pipeline unit test passed successfully!")
+
 
