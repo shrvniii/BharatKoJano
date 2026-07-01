@@ -14,7 +14,7 @@
                 <i class="bi bi-file-earmark-arrow-up"></i> Upload Single OMR
             </button>
             <button type="button" class="tab-btn" id="tab-bulk" style="background: none; border: none; padding: 12px 8px; font-size: 15px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;">
-                <i class="bi bi-file-earmark-zip"></i> Upload ZIP Folder
+                <i class="bi bi-files"></i> Upload ZIP or PDF
             </button>
         </div>
 
@@ -70,21 +70,21 @@
 
         <!-- Bulk Upload Tab -->
         <div id="bulk-upload-content" style="display: none;">
-            <h2 style="margin-bottom: 20px; color: var(--primary-color);">Bulk Upload ZIP</h2>
+            <h2 style="margin-bottom: 20px; color: var(--primary-color);">Bulk Upload Sheets (ZIP / PDF)</h2>
             
             <!-- Initial Upload UI -->
             <div id="bulk-initial-view">
                 <div class="form-group">
-                    <label for="bulk_zip_file" class="form-label required">Choose ZIP File</label>
+                    <label for="bulk_zip_file" class="form-label required">Choose ZIP or PDF File</label>
                     <div id="drop-zone" style="border: 2px dashed var(--border-color); padding: 48px 16px; border-radius: 8px; text-align: center; background-color: var(--bg-color); cursor: pointer; transition: all 0.2s ease;">
-                        <i class="bi bi-file-earmark-zip-fill" style="font-size: 48px; color: var(--text-muted); display: block; margin-bottom: 12px;"></i>
-                        <span style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 15px;">Drag and drop ZIP here, or click to browse</span>
-                        <span style="font-size: 13px; color: var(--text-muted);">ZIP file containing scanned OMR sheets (JPG, JPEG, PNG). Max size: 100 MB.</span>
-                        <input type="file" id="bulk_zip_file" accept=".zip" style="display: none;">
+                        <i class="bi bi-files-alt" style="font-size: 48px; color: var(--text-muted); display: block; margin-bottom: 12px;"></i>
+                        <span style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 15px;">Drag and drop ZIP or PDF here, or click to browse</span>
+                        <span style="font-size: 13px; color: var(--text-muted);">ZIP containing sheet images, or a single multi-page PDF document. Max size: 100 MB.</span>
+                        <input type="file" id="bulk_zip_file" accept=".zip,.pdf" style="display: none;">
                     </div>
                     
                     <div id="file-info" style="display: none; margin-top: 16px; align-items: center; gap: 12px; padding: 16px; background: rgba(21, 101, 192, 0.05); border-radius: 8px; border: 1px solid rgba(21, 101, 192, 0.15);">
-                        <i class="bi bi-file-zip-fill" style="font-size: 32px; color: var(--accent-color);"></i>
+                        <i id="file-info-icon" class="bi bi-file-zip-fill" style="font-size: 32px; color: var(--accent-color);"></i>
                         <div style="flex-grow: 1;">
                             <strong id="selected-file-name" style="font-size: 14px; display: block; color: var(--text-primary);"></strong>
                             <span id="selected-file-size" style="font-size: 12px; color: var(--text-muted);"></span>
@@ -148,7 +148,7 @@
                     <i class="bi bi-check-circle-fill" style="font-size: 24px; margin-top: 2px;"></i>
                     <div>
                         <strong style="font-size: 16px; display: block; margin-bottom: 4px;">Batch Processing Complete</strong>
-                        <span>All valid OMR sheet images in the uploaded ZIP folder have been processed in the background.</span>
+                        <span>All valid OMR sheet pages in the uploaded file have been processed in the background.</span>
                     </div>
                 </div>
                 
@@ -344,15 +344,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleFileSelect(file) {
-        if (!file.name.endsWith('.zip')) {
-            showBulkError("Only ZIP files are supported.");
+        const ext = file.name.slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+        if (ext !== 'zip' && ext !== 'pdf') {
+            showBulkError("Only ZIP and PDF files are supported.");
             clearSelectedFile();
             return;
         }
         
         // 100 MB max size
         if (file.size > 100 * 1024 * 1024) {
-            showBulkError("ZIP file exceeds maximum 100 MB size limit.");
+            showBulkError("File exceeds maximum 100 MB size limit.");
             clearSelectedFile();
             return;
         }
@@ -360,6 +361,16 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedFile = file;
         selectedFileName.textContent = file.name;
         selectedFileSize.textContent = formatBytes(file.size);
+        
+        // Update file icon dynamically based on extension
+        const fileIcon = document.getElementById('file-info-icon');
+        if (ext === 'pdf') {
+            fileIcon.className = 'bi bi-file-earmark-pdf-fill';
+            fileIcon.style.color = '#d32f2f'; // PDF Red
+        } else {
+            fileIcon.className = 'bi bi-file-earmark-zip-fill';
+            fileIcon.style.color = 'var(--accent-color)'; // ZIP Blue
+        }
         
         fileInfo.style.display = 'flex';
         dropZone.style.display = 'none';
