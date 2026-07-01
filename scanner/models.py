@@ -19,3 +19,27 @@ class OMRSubmission(models.Model):
 
     def __str__(self):
         return f"Submission for {self.participant.roll_number} ({self.status})"
+
+class BatchProcess(models.Model):
+    STATUS_CHOICES = [
+        ('queued', 'Queued'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    batch_id = models.CharField(max_length=50, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='queued')
+    total = models.IntegerField(default=0)
+    processed = models.IntegerField(default=0)
+    success = models.IntegerField(default=0)
+    failed = models.IntegerField(default=0)
+    percentage = models.IntegerField(default=0)
+    error_message = models.TextField(blank=True, null=True)
+    failed_files = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Batch {self.batch_id} ({self.status})"
+

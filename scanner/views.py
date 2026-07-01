@@ -58,6 +58,127 @@ class OMRUploadView(LoginRequiredMixin, View):
                 
         return render(request, 'scanner/upload.html', {'form': form})
 
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+class BulkUploadView(LoginRequiredMixin, View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return JsonResponse({"error": "No file uploaded"}, status=400)
+            
+        if not uploaded_file.name.lower().endswith('.zip'):
+            return JsonResponse({"error": "Only ZIP files are supported"}, status=400)
+            
+        # Max size limit 100MB
+        if uploaded_file.size > 100 * 1024 * 1024:
+            return JsonResponse({"error": "ZIP exceeds maximum size limit"}, status=400)
+            
+        # Generate batch ID
+        import uuid
+        batch_id = uuid.uuid4().hex[:12]
+        
+        # Save ZIP temporarily and extract
+        from django.conf import settings
+        import os
+        import shutil
+        from .batch_processor import safe_extract_zip, start_batch_processing
+        from .models import BatchProcess
+        
+        temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_batches', batch_id)
+        extract_path = os.path.join(temp_dir, 'extracted')
+        os.makedirs(extract_path, exist_ok=True)
+        
+        zip_file_path = os.path.join(temp_dir, 'batch.zip')
+        try:
+            with open(zip_file_path, 'wb') as f:
+                for chunk in uploaded_file.chunks():
+                    f.write(chunk)
+                    
+            # Extract ZIP
+            safe_extract_zip(zip_file_path, extract_path)
+        except ValueError as val_err:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return JsonResponse({"error": str(val_err)}, status=400)
+        except Exception as e:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return JsonResponse({"error": f"Invalid ZIP file: {str(e)}"}, status=400)
+            
+        # Clean up temporary ZIP file immediately after extraction
+        if os.path.exists(zip_file_path):
+            try:
+                os.remove(zip_file_path)
+            except Exception:
+                pass
+                
+        # Scan extracted files for supported image formats
+        valid_files = []
+        for root, _, files in os.walk(extract_path):
+            for file in files:
+                ext = os.path.splitext(file)[1].lower()
+                if ext in ['.jpg', '.jpeg', '.png']:
+                    rel_path = os.path.relpath(os.path.join(root, file), extract_path)
+                    valid_files.append(rel_path)
+                    
+        valid_files.sort()
+        
+        if not valid_files:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return JsonResponse({"error": "No supported images found"}, status=400)
+            
+        # Create BatchProcess record
+        batch = BatchProcess.objects.create(
+            batch_id=batch_id,
+            status='queued',
+            total=len(valid_files),
+            processed=0,
+            success=0,
+            failed=0,
+            percentage=0
+        )
+        
+        # Start background processor thread
+        start_batch_processing(batch_id, extract_path, valid_files)
+        
+        return JsonResponse({"batchId": batch_id}, status=200)
+
+class BatchProgressView(LoginRequiredMixin, View):
+    def get(self, request, batch_id):
+        from .models import BatchProcess
+        try:
+            batch = BatchProcess.objects.get(batch_id=batch_id)
+            return JsonResponse({
+                "status": batch.status,
+                "processed": batch.processed,
+                "total": batch.total,
+                "success": batch.success,
+                "failed": batch.failed,
+                "percentage": batch.percentage
+            })
+        except BatchProcess.DoesNotExist:
+            return JsonResponse({"error": "Batch not found"}, status=404)
+
+class BatchResultsView(LoginRequiredMixin, View):
+    def get(self, request, batch_id):
+        from .models import BatchProcess
+        try:
+            batch = BatchProcess.objects.get(batch_id=batch_id)
+            return JsonResponse({
+                "total": batch.total,
+                "success": batch.success,
+                "failed": batch.failed,
+                "failedFiles": batch.failed_files,
+                "errorMessage": batch.error_message
+            })
+        except BatchProcess.DoesNotExist:
+            return JsonResponse({"error": "Batch not found"}, status=404)
+
+
 class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
     model = OMRSubmission
     template_name = 'scanner/submission_confirm_delete.html'

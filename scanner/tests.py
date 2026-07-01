@@ -167,3 +167,156 @@ class OMRPipelineTestCase(TestCase):
             os.remove(submission.image.path)
             
         print("OMR pipeline unit test passed successfully with new layout!")
+
+from django.contrib.auth.models import User
+from django.urls import reverse
+import io
+import zipfile
+from .models import BatchProcess
+from .batch_processor import process_batch_async, safe_extract_zip
+
+class BulkOMRUploadTestCase(TestCase):
+    def setUp(self):
+        # Create school and participant
+        self.school = School.objects.create(name="Test Academy 2", code="03")
+        self.participant = Participant.objects.create(
+            roll_number="03001",
+            full_name="Alice Smith",
+            school=self.school,
+            group="JUNIOR",
+            paper_set="SET_A"
+        )
+        
+        # Create Answer Key
+        self.answers = [1] * 50
+        self.answer_key = AnswerKey.objects.create(
+            group="JUNIOR",
+            paper_set="SET_A",
+            answers=self.answers
+        )
+        
+        # Create user for login
+        self.user = User.objects.create_user(username='tester', password='password123')
+        self.client.force_login(self.user)
+
+    def test_api_bulk_upload_validation(self):
+        # Post request with no file
+        response = self.client.post(reverse('api_bulk_upload'), {})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("No file uploaded", response.json()['error'])
+        
+        # Post request with wrong extension
+        bad_file = io.BytesIO(b"dummy text content")
+        bad_file.name = "test.txt"
+        response = self.client.post(reverse('api_bulk_upload'), {'file': bad_file})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Only ZIP files are supported", response.json()['error'])
+
+    def test_batch_processing_execution(self):
+        # Construct a mock OMR sheet image
+        img = np.ones((1200, 1000, 3), dtype="uint8") * 255
+        
+        # Draw anchors
+        cv2.rectangle(img, (42, 42), (58, 58), (0, 0, 0), -1)   # TL
+        cv2.rectangle(img, (942, 42), (958, 58), (0, 0, 0), -1) # TR
+        cv2.rectangle(img, (42, 1142), (58, 1158), (0, 0, 0), -1) # BL
+        cv2.rectangle(img, (942, 1142), (958, 1158), (0, 0, 0), -1) # BR
+        
+        # Draw Roll No bubbles for "03001"
+        roll_digits = [0, 3, 0, 0, 1]
+        roll_x_centers = [76, 111, 146, 181, 216]
+        
+        for col_idx, digit in enumerate(roll_digits):
+            cx = roll_x_centers[col_idx]
+            ox = int(50 + cx * 0.9)
+            
+            for row_idx in range(10):
+                cy = 260 + row_idx * 36
+                oy = int(50 + cy * (1100.0 / 1200.0))
+                
+                if row_idx == digit:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), -1) # Filled
+                else:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)  # Empty
+        
+        # Draw question bubbles (all set to A/1)
+        col1_x_centers = [359, 402, 445, 487]
+        col2_x_centers = [718, 761, 804, 847]
+        row_y_centers = [int((660 - get_row_y_coordinate(r)) * 2) for r in range(25)]
+        
+        for q in range(50):
+            col = 0 if q < 25 else 1
+            row_idx = q if q < 25 else q - 25
+            
+            x_centers = col1_x_centers if col == 0 else col2_x_centers
+            wy = row_y_centers[row_idx]
+            oy = int(50 + wy * (1100.0 / 1200.0))
+            
+            # Bubble index 1 (which is A) is filled
+            for bubble_idx in range(1, 5):
+                wx = x_centers[bubble_idx - 1]
+                ox = int(50 + wx * 0.9)
+                if bubble_idx == 1:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), -1)
+                else:
+                    cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)
+                    
+        # Encode image to bytes
+        _, img_encoded = cv2.imencode('.png', img)
+        img_bytes = img_encoded.tobytes()
+        
+        # Create in-memory ZIP containing the image
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zf:
+            zf.writestr('sheet1.png', img_bytes)
+            zf.writestr('info.txt', b'random ignored text file')
+            
+        zip_buffer.seek(0)
+        
+        # Create BatchProcess db entry
+        batch_id = "testbatch999"
+        batch = BatchProcess.objects.create(
+            batch_id=batch_id,
+            status='queued',
+            total=1,
+            processed=0,
+            success=0,
+            failed=0,
+            percentage=0
+        )
+        
+        # Set up extract path
+        from django.conf import settings
+        extract_dir = os.path.join(settings.MEDIA_ROOT, 'temp_batches_test', batch_id)
+        os.makedirs(extract_dir, exist_ok=True)
+        
+        zip_file_path = os.path.join(extract_dir, 'batch.zip')
+        with open(zip_file_path, 'wb') as f:
+            f.write(zip_buffer.getvalue())
+            
+        # Extract and process
+        safe_extract_zip(zip_file_path, extract_dir)
+        os.remove(zip_file_path)
+        
+        # Process synchronously
+        valid_files = ['sheet1.png']
+        process_batch_async(batch_id, extract_dir, valid_files)
+        
+        # Verify Batch results
+        batch.refresh_from_db()
+        self.assertEqual(batch.status, 'completed')
+        self.assertEqual(batch.total, 1)
+        self.assertEqual(batch.success, 1)
+        self.assertEqual(batch.failed, 0)
+        self.assertEqual(batch.percentage, 100)
+        
+        # Clean up files on disk
+        for sub in OMRSubmission.objects.all():
+            if sub.image and os.path.exists(sub.image.path):
+                os.remove(sub.image.path)
+        
+        import shutil
+        shutil.rmtree(os.path.join(settings.MEDIA_ROOT, 'temp_batches_test'), ignore_errors=True)
+                
+        print("Bulk OMR pipeline unit test passed successfully!")
+

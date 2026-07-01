@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
+from scanner import views as scanner_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -15,6 +16,14 @@ urlpatterns = [
     path('scanner/', include('scanner.urls')),
     path('results/', include('results.urls')),
     path('reports/', include('reports.urls')),
+    
+    # API endpoints for Bulk ZIP Upload (Batch OMR Processing)
+    path('api/bulk-upload', scanner_views.BulkUploadView.as_view(), name='api_bulk_upload'),
+    path('api/bulk-upload/', scanner_views.BulkUploadView.as_view()),
+    path('api/batch-progress/<str:batch_id>', scanner_views.BatchProgressView.as_view(), name='api_batch_progress'),
+    path('api/batch-progress/<str:batch_id>/', scanner_views.BatchProgressView.as_view()),
+    path('api/batch-results/<str:batch_id>', scanner_views.BatchResultsView.as_view(), name='api_batch_results'),
+    path('api/batch-results/<str:batch_id>/', scanner_views.BatchResultsView.as_view()),
 ]
 
 if settings.DEBUG:
