@@ -266,6 +266,50 @@ def detect_exam_set(thresh):
     else:
         return None
 
+def detect_group(thresh):
+    """
+    Detects which Group bubble is filled (Junior or Senior).
+    Returns 'JUNIOR', 'SENIOR', or None if unclear.
+    """
+    # Group bubbles at X_pdf = 73 (Junior) and 108 (Senior), Y_pdf = 303
+    # In warped space:
+    # Junior: (73-40)*1000/515 = 64
+    # Senior: (108-40)*1000/515 = 132
+    # Y_warped = 2 * (660 - 303) = 714
+    group_x_centers = [64, 132]
+    cy = 714
+    bubble_r = 10
+    # Lower threshold (0.35) for group bubbles (blank inside)
+    fill_threshold = 0.35
+    
+    bubble_stats = []
+    for cx in group_x_centers:
+        x1 = int(cx - bubble_r)
+        y1 = int(cy - bubble_r)
+        x2 = int(cx + bubble_r)
+        y2 = int(cy + bubble_r)
+        
+        bubble_crop = thresh[y1:y2, x1:x2]
+        mask = np.zeros(bubble_crop.shape, dtype="uint8")
+        cv2.circle(mask, (bubble_r, bubble_r), bubble_r - 2, 255, -1)
+        
+        masked_crop = cv2.bitwise_and(bubble_crop, bubble_crop, mask=mask)
+        total_pixels = cv2.countNonZero(mask)
+        if total_pixels == 0:
+            fill_ratio = 0
+        else:
+            filled_pixels = cv2.countNonZero(masked_crop)
+            fill_ratio = float(filled_pixels) / total_pixels
+        bubble_stats.append(fill_ratio)
+        
+    if bubble_stats[0] > fill_threshold and bubble_stats[1] <= fill_threshold:
+        return 'JUNIOR'
+    elif bubble_stats[1] > fill_threshold and bubble_stats[0] <= fill_threshold:
+        return 'SENIOR'
+    else:
+        return None
+
+
 def evaluate_and_grade_submission(submission_id):
     """
     Main pipeline to grade a submission within a database transaction.
@@ -339,18 +383,13 @@ def evaluate_and_grade_submission(submission_id):
                             )
                         
                         detected_set = detect_exam_set(thresh) or 'SET_A'
-                        
-                        # Guess the group based on configured Answer Keys
-                        group = 'JUNIOR'
-                        matching_keys = AnswerKey.objects.filter(paper_set=detected_set)
-                        if matching_keys.count() == 1:
-                            group = matching_keys.first().group
+                        detected_group = detect_group(thresh) or 'JUNIOR'
                             
                         participant = Participant.objects.create(
                             roll_number=detected_roll,
                             full_name=f"Unregistered Student (Roll {detected_roll})",
                             school=school,
-                            group=group,
+                            group=detected_group,
                             paper_set=detected_set
                         )
                     

@@ -110,6 +110,23 @@ def generate_blank_omr_pdf(filename):
             c.setLineWidth(1)
             c.circle(bx, ry, bubble_r, fill=0)
             
+    # 3. Group (Junior / Senior)
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawString(col0_x, 330, "Group")
+    
+    c.setFont("Helvetica", 8)
+    c.drawString(col0_x, 317, "Junior")
+    c.drawString(col0_x + 35, 317, "Senior")
+    
+    # Draw Group Bubbles (Junior = idx 0, Senior = idx 1)
+    for idx in range(2):
+        bx = col0_x + 3 + (idx * 35)
+        by = 303
+        c.setStrokeColor(HexColor("#000000"))
+        c.setLineWidth(1)
+        c.circle(bx, by, bubble_r, fill=0)
+            
     # ==========================================
     # Middle Column: Questions 1 - 25
     # ==========================================
