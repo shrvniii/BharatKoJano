@@ -181,7 +181,9 @@ def detect_roll_number(thresh):
     bubble_r = 10
     
     roll_digits = []
-    fill_threshold = 0.60
+    # Using a lower threshold (0.35) for roll number because these bubbles are completely blank inside
+    # (no letters printed in them), so empty bubbles are <0.05 and filled are >0.40.
+    fill_threshold = 0.35
     
     for col_idx in range(5):
         cx = roll_x_centers[col_idx]
@@ -217,7 +219,6 @@ def detect_roll_number(thresh):
         max_ratio = max(bubble_stats)
         max_idx = bubble_stats.index(max_ratio)
         
-        # Using increased threshold (0.60) to avoid false positives on border lines
         if max_ratio > fill_threshold:
             roll_digits.append(str(max_idx))
         else:
@@ -234,7 +235,8 @@ def detect_exam_set(thresh):
     set_x_centers = [64, 107]
     cy = 104
     bubble_r = 10
-    fill_threshold = 0.60
+    # Lower threshold (0.35) for exam set bubbles (blank inside)
+    fill_threshold = 0.35
     
     bubble_stats = []
     for cx in set_x_centers:
