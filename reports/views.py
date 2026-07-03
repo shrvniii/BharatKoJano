@@ -12,6 +12,7 @@ from scanner.omr_generator import (
     generate_school_omr_sheets_pdf
 )
 from results.models import Result
+from scanner.models import OMRSubmission
 from results.ranking import calculate_dense_ranks
 from participants.models import Participant
 from schools.models import School
