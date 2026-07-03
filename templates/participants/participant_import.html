@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Import Students | BKJ-OMS{% endblock %}
+
+{% block page_title %}Bulk Import Students{% endblock %}
+
+{% block content %}
+<div class="grid-3" style="grid-template-columns: 2fr 1.2fr; gap: 24px; align-items: start; max-width: 1000px; margin: 0 auto;">
+    
+    <!-- Upload Card -->
+    <div class="card" style="padding: 24px;">
+        <h2 style="margin-bottom: 16px; color: var(--primary-color);">Upload Student CSV</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+            Upload a CSV file containing your student records list. If a school name in your list does not exist in the system, it will be automatically registered for you with the code prefix from the roll numbers.
+        </p>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="csv_file" class="form-label required" style="font-weight: 600;">Select CSV File</label>
+                <input type="file" name="csv_file" id="csv_file" class="form-control" accept=".csv" required style="padding: 10px;">
+                <span style="font-size: 12px; color: var(--text-muted); margin-top: 6px; display: block;">
+                    Only <code>.csv</code> files are accepted. Make sure the file uses UTF-8 encoding.
+                </span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <a href="{% url 'participants:list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Start Import
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Instructions Card -->
+    <div class="card" style="background-color: var(--primary-color); color: white; padding: 24px;">
+        <h3 style="color: white; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 16px;">
+            <i class="bi bi-info-circle-fill" style="color: #F57F17;"></i>
+            <span>CSV Column Requirements</span>
+        </h3>
+        
+        <p style="font-size: 13px; color: #94A3B8; margin-bottom: 16px;">
+            Your CSV must contain a header row with these exact column names:
+        </p>
+        
+        <table style="width: 100%; font-size: 12px; color: white; margin-bottom: 20px; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.15);">
+                    <th style="text-align: left; padding: 6px 0; background: transparent; color: #94A3B8;">Column</th>
+                    <th style="text-align: left; padding: 6px 0; background: transparent; color: #94A3B8;">Required Value Rule</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    <td style="padding: 6px 0; font-family: monospace; font-weight: 700; color: #F57F17;">roll_number</td>
+                    <td style="padding: 6px 0;">Exactly 5 digits (e.g. <code>03001</code>)</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    <td style="padding: 6px 0; font-family: monospace; font-weight: 700; color: #F57F17;">school_name</td>
+                    <td style="padding: 6px 0;">Full School name</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    <td style="padding: 6px 0; font-family: monospace; font-weight: 700; color: #F57F17;">group</td>
+                    <td style="padding: 6px 0;"><code>Junior</code> or <code>Senior</code></td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-family: monospace; font-weight: 700; color: #F57F17;">paper_set</td>
+                    <td style="padding: 6px 0;"><code>Set A</code>, <code>Set B</code>, <code>A</code>, or <code>B</code></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+            <a href="{% url 'participants:download_sample_csv' %}" class="btn btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; justify-content: center; font-size: 13px; width: 100%;">
+                <i class="bi bi-file-earmark-spreadsheet" style="color: #F57F17;"></i> Download Sample CSV
+            </a>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
