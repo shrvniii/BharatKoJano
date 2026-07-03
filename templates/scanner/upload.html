@@ -8,28 +8,22 @@
 <div class="grid-2">
     <!-- Upload Form Card -->
     <div class="card">
-        <!-- Tabs Selector -->
-        <div class="tabs-container" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; gap: 16px;">
-            <button type="button" class="tab-btn active" id="tab-single" style="background: none; border: none; padding: 12px 8px; font-size: 15px; font-weight: 600; color: var(--accent-color); border-bottom: 2px solid var(--accent-color); cursor: pointer; transition: all 0.2s ease;">
-                <i class="bi bi-file-earmark-arrow-up"></i> Upload Single OMR
-            </button>
-            <button type="button" class="tab-btn" id="tab-bulk" style="background: none; border: none; padding: 12px 8px; font-size: 15px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;">
-                <i class="bi bi-files"></i> Upload ZIP or PDF
-            </button>
-        </div>
-
-        <!-- Single Upload Tab -->
+        <!-- Live Scanner Form -->
         <div id="single-upload-content">
-            <h2 style="margin-bottom: 20px; color: var(--primary-color);">Upload OMR Sheet</h2>
-            <form method="post" enctype="multipart/form-data">
+            <h2 style="margin-bottom: 8px; color: var(--primary-color);">OMR Scanner</h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+                Point your camera at the pre-printed OMR sheet to auto-align and evaluate.
+            </p>
+            
+            <form method="post" enctype="multipart/form-data" id="omr-upload-form">
                 {% csrf_token %}
                 
                 {% if form.errors %}
-                    <div class="alert alert-danger">
+                    <div class="alert alert-danger" style="margin-bottom: 20px;">
                         <i class="bi bi-exclamation-triangle-fill"></i>
                         <div>
                             <strong>Please correct the errors below:</strong>
-                            <ul style="margin-top: 8px; margin-left: 16px;">
+                            <ul style="margin-top: 8px; margin-left: 16px; font-size: 13px;">
                                 {% for field in form %}
                                     {% for error in field.errors %}
                                         <li>{{ field.label }}: {{ error }}</li>
@@ -43,166 +37,29 @@
                     </div>
                 {% endif %}
                 
-
-                
-                <div id="camera-error-alert" class="alert alert-danger" style="display: none; align-items: flex-start;">
+                <div id="camera-error-alert" class="alert alert-danger" style="display: none; align-items: flex-start; margin-bottom: 20px;">
                     <i class="bi bi-exclamation-triangle-fill" style="margin-top: 2px;"></i>
                     <span id="camera-error-message"></span>
                 </div>
 
-                <div class="form-group">
-                    <label for="id_image" class="form-label required">OMR Sheet Image</label>
+                <!-- Hidden file input for programmatic camera submit -->
+                <div style="display: none;">
                     {{ form.image }}
-                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
-                        Upload a high-quality scan or photo (JPEG, JPG, or PNG). Max file size: 10 MB.
-                    </span>
-                    
-                    <!-- Scan Using Camera Option -->
-                    <div id="camera-scan-option-container" style="display: none; margin-top: 16px;">
-                        <div style="display: flex; align-items: center; text-align: center; margin: 16px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">
-                            <hr style="flex-grow: 1; border: none; border-top: 1px solid var(--border-color); margin-right: 12px;">
-                            <span>OR</span>
-                            <hr style="flex-grow: 1; border: none; border-top: 1px solid var(--border-color); margin-left: 12px;">
-                        </div>
-                        
-                        <button type="button" id="start-camera-btn" class="btn btn-secondary" style="width: 100%; border: 1px solid var(--accent-color); color: var(--accent-color); font-weight: 600; justify-content: center; gap: 8px;">
-                            <i class="bi bi-camera-fill"></i>
-                            <span>Scan Using Camera</span>
-                        </button>
-                    </div>
                 </div>
-                
-                <div style="margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: flex-end;">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-cloud-arrow-up-fill"></i>
-                        <span>Upload & Grade Sheet</span>
+
+                <div style="text-align: center; padding: 48px 24px; border: 2px dashed var(--border-color); border-radius: 16px; background-color: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background-color: rgba(37, 99, 235, 0.1); color: var(--accent-color); display: flex; align-items: center; justify-content: center; font-size: 38px; margin-bottom: 8px;">
+                        <i class="bi bi-camera-fill"></i>
+                    </div>
+                    <button type="button" id="start-camera-btn" class="btn btn-primary" style="padding: 14px 28px; font-weight: 600; font-size: 16px; border-radius: 30px; background-color: var(--accent-color); border: none; color: white; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); cursor: pointer;">
+                        <i class="bi bi-camera-video-fill"></i>
+                        <span>Launch Live OMR Scanner</span>
                     </button>
+                    <span style="font-size: 13px; color: var(--text-muted); max-width: 320px;">
+                        The scanner automatically validates alignment, level, and capture stability.
+                    </span>
                 </div>
             </form>
-        </div>
-
-        <!-- Bulk Upload Tab -->
-        <div id="bulk-upload-content" style="display: none;">
-            <h2 style="margin-bottom: 20px; color: var(--primary-color);">Bulk Upload Sheets (ZIP / PDF)</h2>
-            
-            <!-- Initial Upload UI -->
-            <div id="bulk-initial-view">
-                <div class="form-group">
-                    <label for="bulk_zip_file" class="form-label required">Choose ZIP or PDF File</label>
-                    <div id="drop-zone" style="border: 2px dashed var(--border-color); padding: 48px 16px; border-radius: 8px; text-align: center; background-color: var(--bg-color); cursor: pointer; transition: all 0.2s ease;">
-                        <i class="bi bi-files-alt" style="font-size: 48px; color: var(--text-muted); display: block; margin-bottom: 12px;"></i>
-                        <span style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 15px;">Drag and drop ZIP or PDF here, or click to browse</span>
-                        <span style="font-size: 13px; color: var(--text-muted);">ZIP containing sheet images, or a single multi-page PDF document. Max size: 100 MB.</span>
-                        <input type="file" id="bulk_zip_file" accept=".zip,.pdf" style="display: none;">
-                    </div>
-                    
-                    <div id="file-info" style="display: none; margin-top: 16px; align-items: center; gap: 12px; padding: 16px; background: rgba(21, 101, 192, 0.05); border-radius: 8px; border: 1px solid rgba(21, 101, 192, 0.15);">
-                        <i id="file-info-icon" class="bi bi-file-zip-fill" style="font-size: 32px; color: var(--accent-color);"></i>
-                        <div style="flex-grow: 1;">
-                            <strong id="selected-file-name" style="font-size: 14px; display: block; color: var(--text-primary);"></strong>
-                            <span id="selected-file-size" style="font-size: 12px; color: var(--text-muted);"></span>
-                        </div>
-                        <button type="button" id="remove-file-btn" class="btn btn-sm btn-secondary" style="padding: 6px 10px; border: none; background: none; color: var(--danger-color); font-size: 18px;">
-                            <i class="bi bi-trash-fill"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="bulk-error-alert" class="alert alert-danger" style="display: none; align-items: flex-start;">
-                    <i class="bi bi-exclamation-triangle-fill" style="margin-top: 2px;"></i>
-                    <span id="bulk-error-message"></span>
-                </div>
-                
-                <div style="margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: flex-end;">
-                    <button type="button" id="start-processing-btn" class="btn btn-primary" disabled>
-                        <i class="bi bi-play-fill"></i>
-                        <span>Start Processing</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Progress Tracking UI -->
-            <div id="bulk-progress-view" style="display: none;">
-                <h3 id="progress-status-heading" style="color: var(--accent-color); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                    <i class="bi bi-arrow-repeat spin" style="display: inline-block; font-size: 20px;"></i>
-                    <span>Processing OMR Sheets...</span>
-                </h3>
-                
-                <div style="margin-bottom: 12px; display: flex; justify-content: space-between; font-size: 14px;">
-                    <span id="progress-counts" style="font-weight: 500;">Processed: 0 / 0</span>
-                    <span id="progress-percentage" style="font-weight: 700; color: var(--accent-color);">0%</span>
-                </div>
-                
-                <!-- Progress Bar -->
-                <div style="background-color: var(--border-color); border-radius: 8px; height: 16px; overflow: hidden; margin-bottom: 24px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
-                    <div id="progress-bar-fill" style="background-color: var(--accent-color); width: 0%; height: 100%; transition: width 0.3s ease-out; background-image: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent); background-size: 1rem 1rem; animation: progress-bar-stripes 1s linear infinite;"></div>
-                </div>
-                
-                <!-- Live Stats Cards -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
-                    <div style="padding: 16px; background-color: var(--bg-color); border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
-                        <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Total</div>
-                        <div id="metric-total" style="font-size: 24px; font-weight: 700; color: var(--text-primary);">0</div>
-                    </div>
-                    <div style="padding: 16px; background-color: #DEF7EC; border-radius: 8px; text-align: center; border: 1px solid #BCF0DA;">
-                        <div style="font-size: 12px; color: #03543F; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Success</div>
-                        <div id="metric-success" style="font-size: 24px; font-weight: 700; color: var(--success-color);">0</div>
-                    </div>
-                    <div style="padding: 16px; background-color: #FDE8E8; border-radius: 8px; text-align: center; border: 1px solid #F8B4B4;">
-                        <div style="font-size: 12px; color: #9B1C1C; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Failed</div>
-                        <div id="metric-failed" style="font-size: 24px; font-weight: 700; color: var(--danger-color);">0</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Completion Screen UI -->
-            <div id="bulk-complete-view" style="display: none;">
-                <div class="alert alert-success" style="margin-bottom: 24px; align-items: flex-start;">
-                    <i class="bi bi-check-circle-fill" style="font-size: 24px; margin-top: 2px;"></i>
-                    <div>
-                        <strong style="font-size: 16px; display: block; margin-bottom: 4px;">Batch Processing Complete</strong>
-                        <span>All valid OMR sheet pages in the uploaded file have been processed in the background.</span>
-                    </div>
-                </div>
-                
-                <div class="card" style="padding: 20px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 24px; border-radius: 8px; box-shadow: none;">
-                    <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--primary-color);">Summary Report</h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; font-size: 14px;">
-                        <div>Total Files: <strong id="summary-total" style="font-size: 15px;">0</strong></div>
-                        <div>Successful Evaluations: <strong id="summary-success" style="color: var(--success-color); font-size: 15px;">0</strong></div>
-                        <div>Failed Evaluations: <strong id="summary-failed" style="color: var(--danger-color); font-size: 15px;">0</strong></div>
-                        <div>Success Rate: <strong id="summary-rate" style="font-size: 15px; color: var(--accent-color);">0%</strong></div>
-                    </div>
-                </div>
-                
-                <!-- Failed Files Report Section -->
-                <div id="failed-report-container" style="display: none; margin-bottom: 24px;">
-                    <h3 style="color: var(--danger-color); margin-bottom: 12px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                        <i class="bi bi-exclamation-circle-fill"></i>
-                        <span>Failed Files Report</span>
-                    </h3>
-                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr>
-                                    <th style="padding: 10px 16px;">Filename</th>
-                                    <th style="padding: 10px 16px;">Failure Reason</th>
-                                </tr>
-                            </thead>
-                            <tbody id="failed-files-list">
-                                <!-- Dynamically generated failed files -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: flex-end;">
-                    <button type="button" id="reset-bulk-btn" class="btn btn-secondary">
-                        <i class="bi bi-arrow-counterclockwise"></i>
-                        <span>Process Another Batch</span>
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
     
@@ -427,299 +284,7 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Tab switching logic
-    const tabSingle = document.getElementById('tab-single');
-    const tabBulk = document.getElementById('tab-bulk');
-    const singleContent = document.getElementById('single-upload-content');
-    const bulkContent = document.getElementById('bulk-upload-content');
 
-    if (tabSingle && tabBulk) {
-        tabSingle.addEventListener('click', function() {
-            tabSingle.classList.add('active');
-            tabSingle.style.color = 'var(--accent-color)';
-            tabSingle.style.borderBottomColor = 'var(--accent-color)';
-            
-            tabBulk.classList.remove('active');
-            tabBulk.style.color = 'var(--text-muted)';
-            tabBulk.style.borderBottomColor = 'transparent';
-            
-            singleContent.style.display = 'block';
-            bulkContent.style.display = 'none';
-        });
-
-        tabBulk.addEventListener('click', function() {
-            tabBulk.classList.add('active');
-            tabBulk.style.color = 'var(--accent-color)';
-            tabBulk.style.borderBottomColor = 'var(--accent-color)';
-            
-            tabSingle.classList.remove('active');
-            tabSingle.style.color = 'var(--text-muted)';
-            tabSingle.style.borderBottomColor = 'transparent';
-            
-            bulkContent.style.display = 'block';
-            singleContent.style.display = 'none';
-        });
-    }
-
-    // Bulk upload logic
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('bulk_zip_file');
-    const fileInfo = document.getElementById('file-info');
-    const selectedFileName = document.getElementById('selected-file-name');
-    const selectedFileSize = document.getElementById('selected-file-size');
-    const removeFileBtn = document.getElementById('remove-file-btn');
-    const startBtn = document.getElementById('start-processing-btn');
-
-    const bulkInitialView = document.getElementById('bulk-initial-view');
-    const bulkProgressView = document.getElementById('bulk-progress-view');
-    const bulkCompleteView = document.getElementById('bulk-complete-view');
-    const bulkErrorAlert = document.getElementById('bulk-error-alert');
-    const bulkErrorMessage = document.getElementById('bulk-error-message');
-
-    let selectedFile = null;
-    let progressInterval = null;
-
-    if (dropZone) {
-        dropZone.addEventListener('click', function() {
-            fileInput.click();
-        });
-
-        dropZone.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            dropZone.style.borderColor = 'var(--accent-color)';
-        });
-
-        dropZone.addEventListener('dragleave', function() {
-            dropZone.style.borderColor = 'var(--border-color)';
-        });
-
-        dropZone.addEventListener('drop', function(e) {
-            e.preventDefault();
-            dropZone.style.borderColor = 'var(--border-color)';
-            if (e.dataTransfer.files.length > 0) {
-                handleFileSelect(e.dataTransfer.files[0]);
-            }
-        });
-    }
-
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            if (fileInput.files.length > 0) {
-                handleFileSelect(fileInput.files[0]);
-            }
-        });
-    }
-
-    function handleFileSelect(file) {
-        const ext = file.name.slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
-        if (ext !== 'zip' && ext !== 'pdf') {
-            showBulkError("Only ZIP and PDF files are supported.");
-            clearSelectedFile();
-            return;
-        }
-        
-        // 100 MB max size
-        if (file.size > 100 * 1024 * 1024) {
-            showBulkError("File exceeds maximum 100 MB size limit.");
-            clearSelectedFile();
-            return;
-        }
-        
-        selectedFile = file;
-        selectedFileName.textContent = file.name;
-        selectedFileSize.textContent = formatBytes(file.size);
-        
-        // Update file icon dynamically based on extension
-        const fileIcon = document.getElementById('file-info-icon');
-        if (ext === 'pdf') {
-            fileIcon.className = 'bi bi-file-earmark-pdf-fill';
-            fileIcon.style.color = '#d32f2f'; // PDF Red
-        } else {
-            fileIcon.className = 'bi bi-file-earmark-zip-fill';
-            fileIcon.style.color = 'var(--accent-color)'; // ZIP Blue
-        }
-        
-        fileInfo.style.display = 'flex';
-        dropZone.style.display = 'none';
-        startBtn.disabled = false;
-        hideBulkError();
-    }
-
-    function clearSelectedFile() {
-        selectedFile = null;
-        fileInput.value = '';
-        fileInfo.style.display = 'none';
-        dropZone.style.display = 'block';
-        startBtn.disabled = true;
-    }
-
-    if (removeFileBtn) {
-        removeFileBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            clearSelectedFile();
-        });
-    }
-
-    function formatBytes(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    function showBulkError(msg) {
-        bulkErrorMessage.textContent = msg;
-        bulkErrorAlert.style.display = 'flex';
-    }
-
-    function hideBulkError() {
-        bulkErrorAlert.style.display = 'none';
-    }
-
-    if (startBtn) {
-        startBtn.addEventListener('click', function() {
-            if (!selectedFile) return;
-            
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            
-            startBtn.disabled = true;
-            hideBulkError();
-            
-            fetch('/api/bulk-upload', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-            .then(function(response) {
-                if (!response.ok) {
-                    return response.json().then(function(err) { 
-                        throw new Error(err.error || 'Upload failed');
-                    });
-                }
-                return response.json();
-            })
-            .then(function(data) {
-                const batchId = data.batchId;
-                showProgressView();
-                pollProgress(batchId);
-            })
-            .catch(function(error) {
-                showBulkError(error.message);
-                startBtn.disabled = false;
-            });
-        });
-    }
-
-    function showProgressView() {
-        bulkInitialView.style.display = 'none';
-        bulkProgressView.style.display = 'block';
-        bulkCompleteView.style.display = 'none';
-    }
-
-    function pollProgress(batchId) {
-        progressInterval = setInterval(function() {
-            fetch('/api/batch-progress/' + batchId)
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                updateProgressBar(data);
-                
-                if (data.status === 'completed' || data.status === 'failed') {
-                    clearInterval(progressInterval);
-                    fetchResults(batchId);
-                }
-            })
-            .catch(function(err) {
-                console.error('Error fetching progress:', err);
-            });
-        }, 1000);
-    }
-
-    function updateProgressBar(data) {
-        const progressBarFill = document.getElementById('progress-bar-fill');
-        const progressCounts = document.getElementById('progress-counts');
-        const progressPercentage = document.getElementById('progress-percentage');
-        
-        progressBarFill.style.width = data.percentage + '%';
-        progressPercentage.textContent = data.percentage + '%';
-        progressCounts.textContent = 'Processed: ' + data.processed + ' / ' + data.total;
-        
-        document.getElementById('metric-total').textContent = data.total;
-        document.getElementById('metric-success').textContent = data.success;
-        document.getElementById('metric-failed').textContent = data.failed;
-        
-        // Handle global failures/errors on progress checking
-        if (data.status === 'failed') {
-            document.getElementById('progress-status-heading').style.color = 'var(--danger-color)';
-            document.getElementById('progress-status-heading').innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> <span>Batch processing failed!</span>';
-        }
-    }
-
-    function fetchResults(batchId) {
-        fetch('/api/batch-results/' + batchId)
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
-            showCompleteView(data);
-        })
-        .catch(function(err) {
-            console.error('Error fetching results:', err);
-        });
-    }
-
-    function showCompleteView(data) {
-        bulkProgressView.style.display = 'none';
-        bulkCompleteView.style.display = 'block';
-        
-        document.getElementById('summary-total').textContent = data.total;
-        document.getElementById('summary-success').textContent = data.success;
-        document.getElementById('summary-failed').textContent = data.failed;
-        
-        const rate = data.total > 0 ? Math.round((data.success / data.total) * 100) : 0;
-        document.getElementById('summary-rate').textContent = rate + '%';
-        
-        const failedReportContainer = document.getElementById('failed-report-container');
-        const failedFilesList = document.getElementById('failed-files-list');
-        failedFilesList.innerHTML = '';
-        
-        if (data.failedFiles && data.failedFiles.length > 0) {
-            data.failedFiles.forEach(function(file) {
-                const row = document.createElement('tr');
-                
-                const nameCell = document.createElement('td');
-                nameCell.textContent = file.filename;
-                nameCell.style.fontWeight = '500';
-                nameCell.style.padding = '10px 16px';
-                
-                const reasonCell = document.createElement('td');
-                reasonCell.textContent = file.reason;
-                reasonCell.style.color = 'var(--danger-color)';
-                reasonCell.style.padding = '10px 16px';
-                
-                row.appendChild(nameCell);
-                row.appendChild(reasonCell);
-                failedFilesList.appendChild(row);
-            });
-            failedReportContainer.style.display = 'block';
-        } else {
-            failedReportContainer.style.display = 'none';
-        }
-    }
-
-    const resetBtn = document.getElementById('reset-bulk-btn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function() {
-            clearSelectedFile();
-            bulkInitialView.style.display = 'block';
-            bulkCompleteView.style.display = 'none';
-        });
-    }
 
     // Form submit loader logic
     const singleForm = document.querySelector('#single-upload-content form');
