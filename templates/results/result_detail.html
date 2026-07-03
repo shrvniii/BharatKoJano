@@ -49,12 +49,7 @@
         <div class="stat-info">
             <span class="stat-label">Incorrect Answers</span>
             <span class="stat-value" style="font-size: 24px; color: var(--danger-color);">
-                {% widthratio 50 1 1 as total %}
-                {{ 50|add:result.score|add:result.unanswered_count|add:result.multi_marked_count }}
-                <!-- Wait, simple math in template: incorrect = 50 - score - unanswered - multimarked -->
-                <script>
-                    document.write(50 - {{ result.score }} - {{ result.unanswered_count }} - {{ result.multi_marked_count }});
-                </script>
+                {{ result.incorrect_count }}
             </span>
         </div>
         <i class="bi bi-x-circle-fill stat-icon" style="color: var(--danger-color);"></i>

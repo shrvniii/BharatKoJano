@@ -15,3 +15,7 @@ class Result(models.Model):
 
     def __str__(self):
         return f"Result for {self.participant.roll_number}: {self.score}/50"
+
+    @property
+    def incorrect_count(self):
+        return 50 - self.score - self.unanswered_count - self.multi_marked_count
