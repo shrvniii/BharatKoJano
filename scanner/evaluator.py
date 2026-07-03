@@ -115,21 +115,34 @@ def evaluate_sheet(warped_gray):
     detected_answers = []
     question_confidences = []
     
-    # Apply Otsu's thresholding to get a clean binary image
-    # Invert so bubbles are white (255) and paper is black (0)
-    _, thresh = cv2.threshold(warped_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    
     def check_question(x_centers, y):
-        bubble_stats = []
+        # Crop the entire question row first to apply local Otsu's thresholding
+        row_x1 = int(min(x_centers) - 15)
+        row_x2 = int(max(x_centers) + 15)
+        row_y1 = int(y - 12)
+        row_y2 = int(y + 12)
         
-        for idx, cx in enumerate(x_centers):
-            # Crop bubble region
-            x1 = int(cx - bubble_r)
-            y1 = int(y - bubble_r)
-            x2 = int(cx + bubble_r)
-            y2 = int(y + bubble_r)
+        row_crop = warped_gray[row_y1:row_y2, row_x1:row_x2]
+        
+        # Check contrast to detect uniform blank regions safely
+        row_min, row_max, _, _ = cv2.minMaxLoc(row_crop)
+        if row_max - row_min < 25:
+            row_thresh = np.zeros(row_crop.shape, dtype="uint8")
+        else:
+            _, row_thresh = cv2.threshold(row_crop, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
             
-            bubble_crop = thresh[y1:y2, x1:x2]
+        bubble_stats = []
+        for idx, cx in enumerate(x_centers):
+            # Coordinates relative to the row crop
+            rx = int(cx - row_x1)
+            ry = int(y - row_y1)
+            
+            x1 = int(rx - bubble_r)
+            y1 = int(ry - bubble_r)
+            x2 = int(rx + bubble_r)
+            y2 = int(ry + bubble_r)
+            
+            bubble_crop = row_thresh[y1:y2, x1:x2]
             
             # Create circular mask
             mask = np.zeros(bubble_crop.shape, dtype="uint8")

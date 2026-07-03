@@ -442,6 +442,11 @@ tr:nth-child(even) {
 }
 
 @media (max-width: 768px) {
+    html, body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
     .sidebar {
         transform: translateX(-100%);
     }
@@ -452,6 +457,7 @@ tr:nth-child(even) {
     
     .main-content {
         margin-left: 0;
+        width: 100%;
     }
     
     .menu-toggle {
@@ -460,10 +466,34 @@ tr:nth-child(even) {
     
     .grid-3, .grid-2 {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
     
     .form-row {
         flex-direction: column;
         gap: 0;
+    }
+
+    .content-body {
+        padding: 12px;
+    }
+
+    .card {
+        padding: 16px 12px;
+        margin-bottom: 16px;
+    }
+
+    .topbar {
+        padding: 0 12px;
+    }
+
+    th, td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+    
+    .btn {
+        padding: 8px 14px;
+        font-size: 13px;
     }
 }

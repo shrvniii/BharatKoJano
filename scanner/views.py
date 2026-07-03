@@ -268,20 +268,17 @@ class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
 
     def form_valid(self, form):
         submission = self.get_object()
-        participant_name = submission.participant.roll_number
-        
-        # Check if this was the last submission using its answer key
-        # If so, we might want to unlock the answer key in the future, but let's keep it simple:
-        # We can check if any other evaluated submissions exist for this key. If not, unlock it!
+        participant_name = submission.participant.roll_number if submission.participant else "Unknown Student"
         answer_key = submission.answer_key
         
         response = super().form_valid(form)
         
-        # Check if other submissions still use this answer key
-        other_submissions_exist = OMRSubmission.objects.filter(answer_key=answer_key).exclude(pk=submission.pk).exists()
-        if not other_submissions_exist:
-            answer_key.is_locked = False
-            answer_key.save()
+        if answer_key:
+            # Check if other submissions still use this answer key
+            other_submissions_exist = OMRSubmission.objects.filter(answer_key=answer_key).exclude(pk=submission.pk).exists()
+            if not other_submissions_exist:
+                answer_key.is_locked = False
+                answer_key.save()
             
         messages.success(self.request, f"OMR submission and result for '{participant_name}' have been reset.")
         return response
