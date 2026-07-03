@@ -19,10 +19,7 @@ class ResultListView(LoginRequiredMixin, ListView):
         # Search
         q = self.request.GET.get('q', '').strip()
         if q:
-            queryset = queryset.filter(
-                Q(participant__full_name__icontains=q) | 
-                Q(participant__roll_number__icontains=q)
-            )
+            queryset = queryset.filter(participant__roll_number__icontains=q)
             
         # Filters
         school_id = self.request.GET.get('school', '')

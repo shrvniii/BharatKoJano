@@ -19,7 +19,6 @@ class OMRPipelineTestCase(TestCase):
         self.school = School.objects.create(name="Test Academy", code="02")
         self.participant = Participant.objects.create(
             roll_number="02001",
-            full_name="Bob Jones",
             school=self.school,
             group="JUNIOR",
             paper_set="SET_A"
@@ -184,7 +183,6 @@ class BulkOMRUploadTestCase(TestCase):
         self.school = School.objects.create(name="Test Academy 2", code="03")
         self.participant = Participant.objects.create(
             roll_number="03001",
-            full_name="Alice Smith",
             school=self.school,
             group="JUNIOR",
             paper_set="SET_A"
@@ -446,7 +444,6 @@ class ParticipantValidationTestCase(TestCase):
     def test_valid_junior_roll_number(self):
         p = Participant(
             roll_number="02005",
-            full_name="Junior Valid",
             school=self.school,
             group="JUNIOR",
             paper_set="SET_A"
@@ -460,7 +457,6 @@ class ParticipantValidationTestCase(TestCase):
         from django.core.exceptions import ValidationError
         p = Participant(
             roll_number="02505",  # 505 is in senior range
-            full_name="Junior Invalid",
             school=self.school,
             group="JUNIOR",
             paper_set="SET_A"
@@ -471,7 +467,6 @@ class ParticipantValidationTestCase(TestCase):
     def test_valid_senior_roll_number(self):
         p = Participant(
             roll_number="02505",
-            full_name="Senior Valid",
             school=self.school,
             group="SENIOR",
             paper_set="SET_B"
@@ -485,7 +480,6 @@ class ParticipantValidationTestCase(TestCase):
         from django.core.exceptions import ValidationError
         p = Participant(
             roll_number="02005",  # 005 is in junior range
-            full_name="Senior Invalid",
             school=self.school,
             group="SENIOR",
             paper_set="SET_B"

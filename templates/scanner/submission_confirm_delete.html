@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Delete Submission - {{ submission.participant.full_name }}{% endblock %}
+{% block title %}Delete Submission - {{ submission.participant.roll_number }}{% endblock %}
 
 {% block page_title %}Reset OMR Submission{% endblock %}
 
@@ -12,7 +12,7 @@
     </h2>
     
     <p style="margin-bottom: 24px; color: var(--text-primary);">
-        You are about to delete the OMR submission and score for <strong>{{ submission.participant.full_name }}</strong> (Roll No: <code>{{ submission.participant.roll_number }}</code>).
+        You are about to delete the OMR submission and score for Roll No: <code>{{ submission.participant.roll_number }}</code>.
     </p>
     
     <div class="alert alert-danger" style="margin-bottom: 24px;">

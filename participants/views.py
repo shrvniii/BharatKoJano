@@ -24,7 +24,7 @@ class ParticipantListView(LoginRequiredMixin, ListView):
         # Search
         q = self.request.GET.get('q', '').strip()
         if q:
-            queryset = queryset.filter(full_name__icontains=q) | queryset.filter(roll_number__icontains=q)
+            queryset = queryset.filter(roll_number__icontains=q)
             
         # Filters
         school_id = self.request.GET.get('school', '')
@@ -65,7 +65,7 @@ class ParticipantCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('participants:list')
 
     def form_valid(self, form):
-        messages.success(self.request, f"Participant '{form.instance.full_name}' registered successfully.")
+        messages.success(self.request, f"Participant '{form.instance.roll_number}' registered successfully.")
         return super().form_valid(form)
 
 class ParticipantUpdateView(LoginRequiredMixin, UpdateView):
@@ -75,7 +75,7 @@ class ParticipantUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('participants:list')
 
     def form_valid(self, form):
-        messages.success(self.request, f"Participant '{form.instance.full_name}' updated successfully.")
+        messages.success(self.request, f"Participant '{form.instance.roll_number}' updated successfully.")
         return super().form_valid(form)
 
 class ParticipantDeleteView(LoginRequiredMixin, DeleteView):
@@ -86,10 +86,10 @@ class ParticipantDeleteView(LoginRequiredMixin, DeleteView):
     def form_valid(self, form):
         participant = self.get_object()
         if hasattr(participant, 'omr_submission'):
-            messages.error(self.request, f"Cannot delete '{participant.full_name}' because an OMR sheet has already been uploaded.")
+            messages.error(self.request, f"Cannot delete '{participant.roll_number}' because an OMR sheet has already been uploaded.")
             return redirect('participants:list')
             
-        messages.success(self.request, f"Participant '{participant.full_name}' deleted successfully.")
+        messages.success(self.request, f"Participant '{participant.roll_number}' deleted successfully.")
         return super().form_valid(form)
 
 class ParticipantImportView(LoginRequiredMixin, View):
@@ -114,7 +114,7 @@ class ParticipantImportView(LoginRequiredMixin, View):
             reader = csv.DictReader(io_string)
             
             # Verify headers
-            required_headers = ['roll_number', 'full_name', 'school_name', 'group', 'paper_set']
+            required_headers = ['roll_number', 'school_name', 'group', 'paper_set']
             headers = [h.strip().lower() for h in reader.fieldnames] if reader.fieldnames else []
             
             # Check if all required headers are present
@@ -140,14 +140,13 @@ class ParticipantImportView(LoginRequiredMixin, View):
                 row_data = {k.strip().lower(): v.strip() for k, v in row.items() if k}
                 
                 roll_number = row_data.get('roll_number', '')
-                full_name = row_data.get('full_name', '')
                 school_name = row_data.get('school_name', '')
                 group_raw = row_data.get('group', '').upper()
                 set_raw = row_data.get('paper_set', '').upper()
                 
                 # Validation checks
-                if not roll_number or not full_name or not school_name:
-                    error_rows.append(f"Row {row_num}: Roll Number, Name, and School Name are required.")
+                if not roll_number or not school_name:
+                    error_rows.append(f"Row {row_num}: Roll Number and School Name are required.")
                     continue
                     
                 # Validate roll number format (exactly 5 digits)
@@ -215,7 +214,6 @@ class ParticipantImportView(LoginRequiredMixin, View):
                         # Create participant
                         Participant.objects.create(
                             roll_number=roll_number,
-                            full_name=full_name,
                             school=school,
                             group=group,
                             paper_set=paper_set
@@ -248,7 +246,7 @@ class DownloadSampleCSVView(LoginRequiredMixin, View):
         response['Content-Disposition'] = 'attachment; filename="quizmaster_100_participants.csv"'
         
         writer = csv.writer(response)
-        writer.writerow(['roll_number', 'full_name', 'school_name', 'group', 'paper_set'])
+        writer.writerow(['roll_number', 'school_name', 'group', 'paper_set'])
         
         # 4 mock schools with codes: 01, 02, 03, 04
         schools = [
@@ -265,10 +263,9 @@ class DownloadSampleCSVView(LoginRequiredMixin, View):
                 # 25 students per school = 100 total
                 student_id = school_idx * 25 + student_idx + 1
                 roll = f"{school_code}{student_idx:03d}"  # e.g., "01000" to "01024"
-                name = f"Candidate {student_id}"
                 group = 'Junior' if student_idx < 13 else 'Senior'  # roughly half/half
                 paper_set = 'Set A' if student_idx % 2 == 0 else 'Set B'
                 
-                writer.writerow([roll, name, school_name, group, paper_set])
+                writer.writerow([roll, school_name, group, paper_set])
             
         return response

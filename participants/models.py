@@ -13,7 +13,6 @@ class Participant(models.Model):
     ]
 
     roll_number = models.CharField(max_length=20, unique=True)
-    full_name = models.CharField(max_length=150)
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='participants')
     group = models.CharField(max_length=10, choices=GROUP_CHOICES)
     paper_set = models.CharField(max_length=5, choices=SET_CHOICES)
@@ -69,5 +68,5 @@ class Participant(models.Model):
             raise ValidationError({'roll_number': 'The last 3 digits of the roll number must be numeric.'})
 
     def __str__(self):
-        return f"{self.roll_number} - {self.full_name}"
+        return self.roll_number
 

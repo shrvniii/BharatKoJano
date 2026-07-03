@@ -4,7 +4,7 @@ from .models import Participant
 class ParticipantForm(forms.ModelForm):
     class Meta:
         model = Participant
-        fields = ['roll_number', 'full_name', 'school', 'group', 'paper_set']
+        fields = ['roll_number', 'school', 'group', 'paper_set']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

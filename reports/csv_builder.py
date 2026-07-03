@@ -10,7 +10,6 @@ def build_rankings_csv(results, file_object):
     writer.writerow([
         'Rank',
         'Roll Number',
-        'Full Name',
         'School',
         'Group',
         'Paper Set',
@@ -26,7 +25,6 @@ def build_rankings_csv(results, file_object):
         writer.writerow([
             r.rank,
             r.participant.roll_number,
-            r.participant.full_name,
             r.participant.school.name,
             r.participant.get_group_display(),
             r.participant.get_paper_set_display(),

@@ -106,20 +106,20 @@ def build_individual_slip_pdf(result, response):
     p = result.participant
     info_data = [
         [
-            Paragraph("<b>Candidate Name:</b>", style_body),
-            Paragraph(p.full_name, style_body_bold),
             Paragraph("<b>Roll Number:</b>", style_body),
-            Paragraph(p.roll_number, style_body_bold)
+            Paragraph(p.roll_number, style_body_bold),
+            Paragraph("<b>School Name:</b>", style_body),
+            Paragraph(p.school.name, style_body_bold)
         ],
         [
-            Paragraph("<b>School Name:</b>", style_body),
-            Paragraph(p.school.name, style_body_bold),
             Paragraph("<b>Group & Set:</b>", style_body),
-            Paragraph(f"{p.get_group_display()} ({p.get_paper_set_display()})", style_body_bold)
+            Paragraph(f"{p.get_group_display()} ({p.get_paper_set_display()})", style_body_bold),
+            Paragraph("", style_body),
+            Paragraph("", style_body)
         ]
     ]
     
-    info_table = Table(info_data, colWidths=[110, 180, 90, 135])
+    info_table = Table(info_data, colWidths=[100, 155, 100, 160])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
@@ -343,7 +343,6 @@ def build_school_results_pdf(school, results, response):
             [
                 Paragraph("<b>School Rank</b>", style_th),
                 Paragraph("<b>Roll No</b>", style_th),
-                Paragraph("<b>Student Name</b>", style_th),
                 Paragraph("<b>Paper Set</b>", style_th),
                 Paragraph("<b>Score</b>", style_th),
                 Paragraph("<b>Percentage</b>", style_th),
@@ -354,13 +353,12 @@ def build_school_results_pdf(school, results, response):
             table_rows.append([
                 Paragraph(str(r.rank), style_td),
                 Paragraph(r.participant.roll_number, style_td),
-                Paragraph(r.participant.full_name, style_td_left),
                 Paragraph(r.participant.get_paper_set_display()[-1], style_td),
                 Paragraph(f"<b>{r.score}</b> / 50", style_td),
                 Paragraph(f"{r.percentage}%", style_td),
             ])
             
-        t = Table(table_rows, colWidths=[70, 80, 180, 65, 60, 60])
+        t = Table(table_rows, colWidths=[100, 120, 105, 100, 90])
         t.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), COLOR_PRIMARY),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -435,7 +433,6 @@ def build_ranking_list_pdf(group, results, response):
         [
             Paragraph("<b>Rank</b>", style_th),
             Paragraph("<b>Roll No</b>", style_th),
-            Paragraph("<b>Student Name</b>", style_th),
             Paragraph("<b>School</b>", style_th),
             Paragraph("<b>Set</b>", style_th),
             Paragraph("<b>Score</b>", style_th),
@@ -447,14 +444,13 @@ def build_ranking_list_pdf(group, results, response):
         table_rows.append([
             Paragraph(f"<b>{r.rank}</b>", style_td),
             Paragraph(r.participant.roll_number, style_td),
-            Paragraph(r.participant.full_name, style_td_left),
             Paragraph(r.participant.school.name, style_td_left),
             Paragraph(r.participant.get_paper_set_display()[-1], style_td),
             Paragraph(f"<b>{r.score}</b> / 50", style_td),
             Paragraph(f"{r.percentage}%", style_td),
         ])
         
-    t = Table(table_rows, colWidths=[45, 65, 140, 160, 35, 35, 35])
+    t = Table(table_rows, colWidths=[65, 80, 210, 50, 55, 55])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), COLOR_PRIMARY),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),

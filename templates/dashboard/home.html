@@ -106,7 +106,6 @@
                 <thead>
                     <tr>
                         <th>Roll No</th>
-                        <th>Candidate</th>
                         <th>School</th>
                         <th style="text-align: center;">Status</th>
                         <th style="text-align: right;">Action</th>
@@ -116,7 +115,6 @@
                     {% for upload in recent_uploads %}
                         <tr>
                             <td class="table-mono">{{ upload.participant.roll_number }}</td>
-                            <td style="font-weight: 600;">{{ upload.participant.full_name }}</td>
                             <td>{{ upload.participant.school.name|truncatechars:20 }}</td>
                             <td style="text-align: center;">
                                 {% if upload.status == 'EVALUATED' %}
@@ -137,7 +135,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">
                                 No sheets uploaded yet.
                             </td>
                         </tr>

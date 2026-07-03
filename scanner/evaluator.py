@@ -360,7 +360,7 @@ def evaluate_and_grade_submission(submission_id):
                             # Soft fallback log
                             import logging
                             logger = logging.getLogger(__name__)
-                            logger.info(f"OMR Roll No partially bubbled as '{detected_roll}'. Unique match resolved to: {participant.full_name} ({participant.roll_number})")
+                            logger.info(f"OMR Roll No partially bubbled as '{detected_roll}'. Unique match resolved to: {participant.roll_number}")
                         else:
                             raise ValueError(
                                 f"Could not clearly read the roll number from the sheet. Detected '{detected_roll}'. "
@@ -396,7 +396,6 @@ def evaluate_and_grade_submission(submission_id):
                             
                         participant = Participant.objects.create(
                             roll_number=detected_roll,
-                            full_name=f"Unregistered Student (Roll {detected_roll})",
                             school=school,
                             group=detected_group,
                             paper_set=detected_set
@@ -404,7 +403,7 @@ def evaluate_and_grade_submission(submission_id):
                     
                     # Check if this participant already has a submission
                     if OMRSubmission.objects.filter(participant=participant).exclude(pk=submission.pk).exists():
-                        raise ValueError(f"Participant {participant.full_name} ({detected_roll}) already has an OMR submission.")
+                        raise ValueError(f"Participant {detected_roll} already has an OMR submission.")
                 
                 submission.participant = participant
             

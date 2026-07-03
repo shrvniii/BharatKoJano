@@ -84,7 +84,6 @@
         <thead>
             <tr>
                 <th>Roll Number</th>
-                <th>Full Name</th>
                 <th>School</th>
                 <th>Group</th>
                 <th>Paper Set</th>
@@ -96,7 +95,6 @@
             {% for participant in participants %}
                 <tr>
                     <td class="table-mono" style="font-weight: 600;">{{ participant.roll_number }}</td>
-                    <td style="font-weight: 500;">{{ participant.full_name }}</td>
                     <td>{{ participant.school.name }}</td>
                     <td><span class="badge badge-info">{{ participant.get_group_display }}</span></td>
                     <td><span class="badge badge-info">{{ participant.get_paper_set_display }}</span></td>

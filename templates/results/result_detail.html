@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Result Detail - {{ result.participant.full_name }}{% endblock %}
+{% block title %}Result Detail - {{ result.participant.roll_number }}{% endblock %}
 
 {% block page_title %}Result Breakdown{% endblock %}
 
@@ -9,9 +9,8 @@
 <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; border-left: 4px solid var(--accent-color);">
     <div>
         <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Candidate Details</span>
-        <h2 style="margin-top: 4px; margin-bottom: 8px; font-size: 22px; color: var(--primary-color);">{{ result.participant.full_name }}</h2>
+        <h2 style="margin-top: 4px; margin-bottom: 8px; font-size: 22px; color: var(--primary-color);">Roll No: {{ result.participant.roll_number }}</h2>
         <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--text-muted);">
-            <span><i class="bi bi-hash"></i> Roll No: <strong>{{ result.participant.roll_number }}</strong></span>
             <span><i class="bi bi-building"></i> School: <strong>{{ result.participant.school.name }}</strong></span>
             <span><i class="bi bi-people"></i> Group: <strong>{{ result.participant.get_group_display }}</strong></span>
             <span><i class="bi bi-file-earmark-text"></i> Paper Set: <strong>{{ result.participant.get_paper_set_display }}</strong></span>

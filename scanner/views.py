@@ -51,7 +51,7 @@ class OMRUploadView(LoginRequiredMixin, View):
             
             if success:
                 submission.refresh_from_db()
-                messages.success(request, f"OMR Sheet for {submission.participant.full_name} evaluated successfully!")
+                messages.success(request, f"OMR Sheet for {submission.participant.roll_number} evaluated successfully!")
                 return redirect('results:detail', pk=submission.result.pk)
             else:
                 messages.error(request, f"OMR Evaluation failed: {msg}")
@@ -203,7 +203,7 @@ class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
 
     def form_valid(self, form):
         submission = self.get_object()
-        participant_name = submission.participant.full_name
+        participant_name = submission.participant.roll_number
         
         # Check if this was the last submission using its answer key
         # If so, we might want to unlock the answer key in the future, but let's keep it simple:

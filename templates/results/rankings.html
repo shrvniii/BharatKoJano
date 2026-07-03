@@ -83,7 +83,6 @@
                 <tr>
                     <th style="width: 80px; text-align: center;">Rank</th>
                     <th>Roll Number</th>
-                    <th>Full Name</th>
                     <th>School</th>
                     <th style="text-align: center;">Set</th>
                     <th style="text-align: center;">Score</th>
@@ -99,7 +98,6 @@
                             </span>
                         </td>
                         <td class="table-mono" style="font-weight: 600;">{{ result.participant.roll_number }}</td>
-                        <td style="font-weight: 500;">{{ result.participant.full_name }}</td>
                         <td>{{ result.participant.school.name }}</td>
                         <td style="text-align: center;"><span class="badge badge-info">{{ result.participant.get_paper_set_display|slice:"-1:" }}</span></td>
                         <td style="text-align: center; font-weight: 700; color: var(--accent-color); font-size: 16px;">{{ result.score }} <span style="font-size: 12px; font-weight: 500; color: var(--text-muted);">/ 50</span></td>
@@ -107,7 +105,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
                             No Junior results evaluated yet.
                         </td>
                     </tr>
@@ -134,7 +132,6 @@
                 <tr>
                     <th style="width: 80px; text-align: center;">Rank</th>
                     <th>Roll Number</th>
-                    <th>Full Name</th>
                     <th>School</th>
                     <th style="text-align: center;">Set</th>
                     <th style="text-align: center;">Score</th>
@@ -150,7 +147,6 @@
                             </span>
                         </td>
                         <td class="table-mono" style="font-weight: 600;">{{ result.participant.roll_number }}</td>
-                        <td style="font-weight: 500;">{{ result.participant.full_name }}</td>
                         <td>{{ result.participant.school.name }}</td>
                         <td style="text-align: center;"><span class="badge badge-info">{{ result.participant.get_paper_set_display|slice:"-1:" }}</span></td>
                         <td style="text-align: center; font-weight: 700; color: var(--accent-color); font-size: 16px;">{{ result.score }} <span style="font-size: 12px; font-weight: 500; color: var(--text-muted);">/ 50</span></td>
@@ -158,7 +154,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
                             No Senior results evaluated yet.
                         </td>
                     </tr>
@@ -202,7 +198,6 @@
                             <tr>
                                 <th style="width: 70px; text-align: center;">Rank</th>
                                 <th>Roll No</th>
-                                <th>Name</th>
                                 <th style="text-align: center;">Score</th>
                             </tr>
                         </thead>
@@ -215,12 +210,11 @@
                                         </span>
                                     </td>
                                     <td class="table-mono" style="font-size: 13px;">{{ r.participant.roll_number }}</td>
-                                    <td style="font-weight: 500; font-size: 13px;">{{ r.participant.full_name }}</td>
                                     <td style="text-align: center; font-weight: 700; color: var(--accent-color);">{{ r.score }} <span style="font-size: 10px; font-weight: 500; color: var(--text-muted);">/ 50</span></td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
+                                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
                                         No Juniors evaluated from this school.
                                     </td>
                                 </tr>
@@ -242,7 +236,6 @@
                             <tr>
                                 <th style="width: 70px; text-align: center;">Rank</th>
                                 <th>Roll No</th>
-                                <th>Name</th>
                                 <th style="text-align: center;">Score</th>
                             </tr>
                         </thead>
@@ -255,12 +248,11 @@
                                         </span>
                                     </td>
                                     <td class="table-mono" style="font-size: 13px;">{{ r.participant.roll_number }}</td>
-                                    <td style="font-weight: 500; font-size: 13px;">{{ r.participant.full_name }}</td>
                                     <td style="text-align: center; font-weight: 700; color: var(--accent-color);">{{ r.score }} <span style="font-size: 10px; font-weight: 500; color: var(--text-muted);">/ 50</span></td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
+                                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
                                         No Seniors evaluated from this school.
                                     </td>
                                 </tr>
@@ -290,7 +282,6 @@
                 <tr>
                     <th style="width: 80px; text-align: center;">Rank</th>
                     <th>Roll Number</th>
-                    <th>Full Name</th>
                     <th>School</th>
                     <th>Group</th>
                     <th style="text-align: center;">Score</th>
@@ -306,7 +297,6 @@
                             </span>
                         </td>
                         <td class="table-mono" style="font-weight: 600;">{{ result.participant.roll_number }}</td>
-                        <td style="font-weight: 500;">{{ result.participant.full_name }}</td>
                         <td>{{ result.participant.school.name }}</td>
                         <td>
                             <span class="badge badge-info" style="background-color: #F1F5F9; color: var(--text-primary); border: 1px solid var(--border-color);">
@@ -318,7 +308,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
                             No results evaluated yet.
                         </td>
                     </tr>

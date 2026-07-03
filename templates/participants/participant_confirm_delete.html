@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Delete Participant - {{ participant.full_name }}{% endblock %}
+{% block title %}Delete Participant - {{ participant.roll_number }}{% endblock %}
 
 {% block page_title %}Delete Participant{% endblock %}
 
@@ -12,7 +12,7 @@
     </h2>
     
     <p style="margin-bottom: 24px; color: var(--text-primary);">
-        You are about to delete the participant <strong>{{ participant.full_name }}</strong> (Roll No: <code>{{ participant.roll_number }}</code>). This action is permanent and cannot be undone.
+        You are about to delete the participant with Roll No: <code>{{ participant.roll_number }}</code>. This action is permanent and cannot be undone.
     </p>
     
     <div class="alert alert-warning" style="margin-bottom: 24px;">

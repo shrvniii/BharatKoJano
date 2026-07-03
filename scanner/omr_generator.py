@@ -36,7 +36,7 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     # Pre-fill participant data if provided
     if participant:
         c.setFont("Helvetica", 11)
-        c.drawString(140, 772, participant.full_name.upper())
+        c.drawString(140, 772, f"ROLL NO: {participant.roll_number}")
         c.drawString(140, 747, "OMR EVALUATION SHEET")
         
         # Display School and Group
