@@ -5,23 +5,15 @@ from participants.models import Participant
 class OMRUploadForm(forms.ModelForm):
     class Meta:
         model = OMRSubmission
-        fields = ['participant', 'image']
+        fields = ['image']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['participant'].required = False
-        self.fields['participant'].help_text = "Optional. If left blank, the system will automatically read the roll number from the sheet."
-        self.fields['participant'].widget.attrs.update({
-            'class': 'form-control',
-            'id': 'id_participant'
-        })
         self.fields['image'].widget.attrs.update({
             'class': 'form-control',
-            'accept': 'image/png, image/jpeg, image/jpg'
+            'accept': 'image/png, image/jpeg, image/jpg',
+            'id': 'id_image'
         })
-        
-        # Only show participants who do not have an OMR submission yet
-        self.fields['participant'].queryset = Participant.objects.filter(omr_submission__isnull=True).order_by('roll_number')
 
     def clean_image(self):
         image = self.cleaned_data.get('image')

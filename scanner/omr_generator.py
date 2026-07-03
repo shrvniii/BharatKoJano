@@ -16,9 +16,17 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     Draws the complete OMR sheet layout onto a ReportLab canvas.
     If a participant object is provided, pre-prints their details and pre-bubbles their Roll No and Group.
     """
+    # 0. Title above the header box
+    c.setFont("Helvetica-Bold", 16)
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawCentredString(297, 815, "BHARAT KO JANO")
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(HexColor("#1E3A8A"))
+    c.drawCentredString(297, 800, "Online OMR Management System (BKJ-OMS)")
+
     # 1. Header Information Table
     c.setStrokeColor(HexColor("#000000"))
-    c.setLineWidth(1.5)
+    c.setLineWidth(1.2)
     
     # Outer rectangle for header info
     c.rect(70, 715, 455, 75, fill=0)
@@ -27,22 +35,25 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     c.line(70, 765, 525, 765)
     
     # Header Labels
-    c.setFont("Helvetica-Bold", 12)
-    c.setFillColor(black)
-    c.drawString(80, 772, "NAME :")
-    c.drawString(80, 747, "EXAM :")
-    c.drawString(80, 722, "DATE :")
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawString(80, 772, "STUDENT NAME (Write in Capital Letters) :")
+    c.drawString(80, 747, "SCHOOL NAME :")
+    c.drawString(80, 722, "DATE OF EXAM : _______________________")
+    c.drawString(340, 722, "CATEGORY :")
     
     # Pre-fill participant data if provided
     if participant:
-        c.setFont("Helvetica", 11)
-        c.drawString(140, 772, f"ROLL NO: {participant.roll_number}")
-        c.drawString(140, 747, "OMR EVALUATION SHEET")
+        c.setFont("Helvetica-Bold", 10)
+        c.setFillColor(black)
         
-        # Display School and Group
-        school_name = participant.school.name
-        group_name = participant.get_group_display()
-        c.drawString(140, 722, f"{school_name.upper()}   |   {group_name.upper()} GROUP")
+        # Display School Name
+        if hasattr(participant, 'school') and participant.school:
+            c.drawString(175, 747, participant.school.name.upper())
+            
+        # Display Category
+        if hasattr(participant, 'group') and participant.group:
+            c.drawString(410, 722, participant.group.upper())
         
     # Draw OMR Grid and Registration Anchors
     anchor_size = 14
@@ -225,7 +236,37 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     # Footer
     c.setFont("Helvetica-Oblique", 8)
     c.setFillColor(HexColor("#94A3B8"))
-    c.drawCentredString(297, 25, "QuizMaster OMR System • Designed for Automated Grading")
+    c.drawCentredString(297, 25, "BKJ-OMS System • Designed for Bharat Ko Jano OMR Evaluation")
+
+class MockParticipant:
+    def __init__(self, roll_number, school, group):
+        self.roll_number = roll_number
+        self.school = school
+        self.group = group
+
+def generate_school_omr_sheets_pdf(filename, school):
+    """
+    Generates a 400-page OMR PDF organized school-wise.
+    - 200 JUNIOR sheets (Roll numbers SS001 to SS200)
+    - 200 SENIOR sheets (Roll numbers SS001 to SS200)
+    """
+    c = canvas.Canvas(filename, pagesize=A4)
+    
+    # 1. 200 JUNIOR sheets
+    for r in range(1, 201):
+        roll_number = f"{school.code}{r:03d}"
+        p = MockParticipant(roll_number, school, "JUNIOR")
+        draw_omr_sheet_on_canvas(c, p)
+        c.showPage()
+        
+    # 2. 200 SENIOR sheets
+    for r in range(1, 201):
+        roll_number = f"{school.code}{r:03d}"
+        p = MockParticipant(roll_number, school, "SENIOR")
+        draw_omr_sheet_on_canvas(c, p)
+        c.showPage()
+        
+    c.save()
 
 def generate_blank_omr_pdf(filename):
     c = canvas.Canvas(filename, pagesize=A4)

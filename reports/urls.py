@@ -7,8 +7,7 @@ from .views import (
     CSVReportDownloadView,
     BlankOMRSheetDownloadView,
     PersonalizedOMRSheetDownloadView,
-    SchoolOMRSheetsDownloadView,
-    AllOMRSheetsDownloadView
+    SchoolOMRSheetsDownloadView
 )
 
 app_name = 'reports'
@@ -22,5 +21,4 @@ urlpatterns = [
     path('download/blank-omr/', BlankOMRSheetDownloadView.as_view(), name='blank_omr'),
     path('download/personalized-omr/<int:participant_id>/', PersonalizedOMRSheetDownloadView.as_view(), name='personalized_omr'),
     path('download/school-omr/<int:school_id>/', SchoolOMRSheetsDownloadView.as_view(), name='school_omr'),
-    path('download/all-omr/', AllOMRSheetsDownloadView.as_view(), name='all_omr'),
 ]

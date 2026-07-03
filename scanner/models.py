@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from participants.models import Participant
 from answer_keys.models import AnswerKey
 
@@ -16,9 +17,11 @@ class OMRSubmission(models.Model):
     error_message = models.TextField(blank=True, null=True)
     detected_answers = models.JSONField(blank=True, null=True)  # List of 50 detected values (0=unanswered, 1-4=A-D, 5=multi-marked)
     answer_key = models.ForeignKey(AnswerKey, on_delete=models.PROTECT, related_name='submissions', blank=True, null=True)
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='submissions')
 
     def __str__(self):
-        return f"Submission for {self.participant.roll_number} ({self.status})"
+        roll_num = self.participant.roll_number if self.participant else "No Participant"
+        return f"Submission for {roll_num} ({self.status})"
 
 class BatchProcess(models.Model):
     STATUS_CHOICES = [

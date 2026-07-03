@@ -9,6 +9,7 @@ class Result(models.Model):
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
     unanswered_count = models.IntegerField()
     multi_marked_count = models.IntegerField()
+    confidence_score = models.IntegerField(default=100)
     question_breakdown = models.JSONField()  # List of 50 dicts: [{"q_no": 1, "detected": 1, "correct": 1, "status": "correct"}]
     evaluated_at = models.DateTimeField(auto_now_add=True)
 

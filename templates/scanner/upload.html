@@ -43,13 +43,7 @@
                     </div>
                 {% endif %}
                 
-                <div class="form-group">
-                    <label for="id_participant" class="form-label required">Select Participant</label>
-                    {{ form.participant }}
-                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
-                        Only showing participants who do not have an evaluated result. Search by Roll Number or Name.
-                    </span>
-                </div>
+
                 
                 <div id="camera-error-alert" class="alert alert-danger" style="display: none; align-items: flex-start;">
                     <i class="bi bi-exclamation-triangle-fill" style="margin-top: 2px;"></i>
@@ -257,7 +251,19 @@
         <path id="guide-corners" stroke="#FFFFFF" stroke-width="4" fill="none" d="" />
         <circle id="level-outer" cx="50%" cy="50%" r="24" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none" />
         <circle id="level-inner" cx="50%" cy="50%" r="8" fill="rgba(255,255,255,0.7)" style="transition: transform 0.05s ease-out; transform-origin: center;" />
+        
+        <!-- Corner Marker Detection Status Dots -->
+        <circle id="status-tl" r="10" fill="#EF4444" stroke="white" stroke-width="2" />
+        <circle id="status-tr" r="10" fill="#EF4444" stroke="white" stroke-width="2" />
+        <circle id="status-bl" r="10" fill="#EF4444" stroke="white" stroke-width="2" />
+        <circle id="status-br" r="10" fill="#EF4444" stroke="white" stroke-width="2" />
     </svg>
+    
+    <!-- Auto-Capture Toggle Pill -->
+    <div id="autocapture-pill" style="position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(10px); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.25); display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer; user-select: none;">
+        <span id="autocapture-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #10B981; display: inline-block;"></span>
+        <span>Auto-Capture: <span id="autocapture-mode-text">ON</span></span>
+    </div>
     
     <div class="scanner-header">
         <button type="button" id="close-scanner-btn" style="background: rgba(255, 255, 255, 0.15); border: none; border-radius: 50%; width: 40px; height: 40px; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; backdrop-filter: blur(5px); transition: background-color 0.2s;">
@@ -883,6 +889,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function closeScanner() {
+        stopFrameAnalysis();
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
             currentStream = null;
@@ -973,6 +980,16 @@ document.addEventListener('DOMContentLoaded', function() {
         levelOuter.setAttribute('cy', H / 2);
         levelInner.setAttribute('cx', W / 2);
         levelInner.setAttribute('cy', H / 2);
+        
+        // Position corner status indicator dots
+        document.getElementById('status-tl').setAttribute('cx', x);
+        document.getElementById('status-tl').setAttribute('cy', y);
+        document.getElementById('status-tr').setAttribute('cx', x + w);
+        document.getElementById('status-tr').setAttribute('cy', y);
+        document.getElementById('status-bl').setAttribute('cx', x);
+        document.getElementById('status-bl').setAttribute('cy', y + h);
+        document.getElementById('status-br').setAttribute('cx', x + w);
+        document.getElementById('status-br').setAttribute('cy', y + h);
     }
 
     window.addEventListener('resize', function() {
@@ -981,7 +998,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    video.addEventListener('playing', resizeGuide);
+    let analysisTimer = null;
+    let autoCaptureActive = true;
+    let isCaptured = false;
+    let stableCount = 0;
+    let lastCenters = null;
+
+    // Toggle pill logic
+    const autoCapPill = document.getElementById('autocapture-pill');
+    const autoCapDot = document.getElementById('autocapture-status-dot');
+    const autoCapText = document.getElementById('autocapture-mode-text');
+    
+    if (autoCapPill) {
+        autoCapPill.addEventListener('click', function() {
+            autoCaptureActive = !autoCaptureActive;
+            if (autoCaptureActive) {
+                autoCapDot.style.backgroundColor = '#10B981';
+                autoCapText.textContent = "ON";
+            } else {
+                autoCapDot.style.backgroundColor = '#EF4444';
+                autoCapText.textContent = "OFF";
+            }
+        });
+    }
+
+    function stopFrameAnalysis() {
+        if (analysisTimer) {
+            clearInterval(analysisTimer);
+            analysisTimer = null;
+        }
+    }
+
+    function startFrameAnalysis() {
+        stopFrameAnalysis();
+        stableCount = 0;
+        lastCenters = null;
+        isCaptured = false;
+        analysisTimer = setInterval(analyzeFrame, 200);
+    }
+
+    video.addEventListener('playing', function() {
+        resizeGuide();
+        startFrameAnalysis();
+    });
 
     function handleOrientation(event) {
         let beta = event.beta;
@@ -1005,22 +1064,203 @@ document.addEventListener('DOMContentLoaded', function() {
             cameraOverlay.classList.add('level-perfect');
             levelOuter.setAttribute('stroke', '#10B981');
             levelInner.setAttribute('fill', '#10B981');
-            guideCorners.setAttribute('stroke', '#10B981');
-            guideCorners.style.filter = 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.8))';
-            instruction.textContent = "Level! Capture photo now.";
-            instruction.style.color = '#10B981';
             levelStatus.style.color = '#10B981';
             levelStatus.innerHTML = '<i class="bi bi-phone-fill"></i>';
         } else {
             cameraOverlay.classList.remove('level-perfect');
             levelOuter.setAttribute('stroke', 'rgba(255, 255, 255, 0.4)');
             levelInner.setAttribute('fill', 'rgba(255, 255, 255, 0.7)');
-            guideCorners.setAttribute('stroke', '#FFFFFF');
-            guideCorners.style.filter = 'none';
-            instruction.textContent = "Keep phone flat parallel to table";
-            instruction.style.color = 'rgba(255, 255, 255, 0.8)';
             levelStatus.style.color = '#94A3B8';
             levelStatus.innerHTML = '<i class="bi bi-phone-vibrate-fill" style="transform: rotate(90deg);"></i>';
+        }
+    }
+
+    function getDistance(pt1, pt2) {
+        return Math.sqrt(Math.pow(pt1.cx - pt2.cx, 2) + Math.pow(pt1.cy - pt2.cy, 2));
+    }
+
+    function updateStatusDot(id, detected) {
+        const dot = document.getElementById(id);
+        if (dot) {
+            dot.setAttribute('fill', detected ? '#10B981' : '#EF4444');
+        }
+    }
+
+    function checkCornerROI(ctx, rx, ry, rw, rh) {
+        const imgData = ctx.getImageData(rx, ry, rw, rh);
+        const pixels = imgData.data;
+        
+        let sumX = 0, sumY = 0, count = 0;
+        let minX = rw, maxX = 0, minY = rh, maxY = 0;
+        
+        for (let y = 0; y < rh; y++) {
+            for (let x = 0; x < rw; x++) {
+                const idx = (y * rw + x) * 4;
+                const r = pixels[idx];
+                const g = pixels[idx+1];
+                const b = pixels[idx+2];
+                const brightness = (r + g + b) / 3;
+                
+                if (brightness < 85) {
+                    sumX += x;
+                    sumY += y;
+                    count++;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        
+        if (count === 0) return { detected: false };
+        
+        const w_b = maxX - minX + 1;
+        const h_b = maxY - minY + 1;
+        
+        const isCorrectSize = (w_b >= 6 && w_b <= 28 && h_b >= 6 && h_b <= 28);
+        const isSquare = (w_b / h_b >= 0.5 && w_b / h_b <= 2.0);
+        
+        const area = w_b * h_b;
+        const solidity = count / area;
+        const isSolid = (solidity > 0.4);
+        
+        return {
+            detected: isCorrectSize && isSquare && isSolid,
+            w: w_b,
+            h: h_b,
+            solidity,
+            count,
+            cx: rx + sumX / count,
+            cy: ry + sumY / count
+        };
+    }
+
+    function triggerAutoCapture() {
+        isCaptured = true;
+        stopFrameAnalysis();
+        
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
+        
+        instruction.textContent = "OMR Captured!";
+        instruction.style.color = '#10B981';
+        
+        const captureBtn = document.getElementById('capture-photo-btn');
+        if (captureBtn) {
+            captureBtn.click();
+        }
+    }
+
+    function analyzeFrame() {
+        if (!currentStream || video.paused || video.ended || isCaptured) return;
+        
+        const vW = video.videoWidth;
+        const vH = video.videoHeight;
+        if (!vW || !vH) return;
+        
+        const W_view = cameraOverlay.clientWidth;
+        const H_view = cameraOverlay.clientHeight;
+        if (!W_view || !H_view) return;
+        
+        const canvas = document.createElement('canvas');
+        const targetW = 300;
+        const targetH = 360;
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        
+        const scale = Math.max(W_view / vW, H_view / vH);
+        const w_rendered = vW * scale;
+        const h_rendered = vH * scale;
+        const dx = (W_view - w_rendered) / 2;
+        const dy = (H_view - h_rendered) / 2;
+        
+        const sx = (guideRect.x - dx) / scale;
+        const sy = (guideRect.y - dy) / scale;
+        const sWidth = guideRect.w / scale;
+        const sHeight = guideRect.h / scale;
+        
+        ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, targetW, targetH);
+        
+        const roiSize = 40;
+        
+        const tlResult = checkCornerROI(ctx, 0, 0, roiSize, roiSize);
+        const trResult = checkCornerROI(ctx, targetW - roiSize, 0, roiSize, roiSize);
+        const blResult = checkCornerROI(ctx, 0, targetH - roiSize, roiSize, roiSize);
+        const brResult = checkCornerROI(ctx, targetW - roiSize, targetH - roiSize, roiSize, roiSize);
+        
+        updateStatusDot('status-tl', tlResult.detected);
+        updateStatusDot('status-tr', trResult.detected);
+        updateStatusDot('status-bl', blResult.detected);
+        updateStatusDot('status-br', brResult.detected);
+        
+        const allDetected = tlResult.detected && trResult.detected && blResult.detected && brResult.detected;
+        const isLevel = cameraOverlay.classList.contains('level-perfect');
+        
+        if (allDetected) {
+            let isStable = false;
+            if (lastCenters) {
+                const dstTL = getDistance(tlResult, lastCenters.tl);
+                const dstTR = getDistance(trResult, lastCenters.tr);
+                const dstBL = getDistance(blResult, lastCenters.bl);
+                const dstBR = getDistance(brResult, lastCenters.br);
+                
+                const maxDist = Math.max(dstTL, dstTR, dstBL, dstBR);
+                if (maxDist < 4) {
+                    isStable = true;
+                }
+            } else {
+                isStable = true;
+            }
+            
+            lastCenters = {
+                tl: { cx: tlResult.cx, cy: tlResult.cy },
+                tr: { cx: trResult.cx, cy: trResult.cy },
+                bl: { cx: blResult.cx, cy: blResult.cy },
+                br: { cx: brResult.cx, cy: brResult.cy }
+            };
+            
+            if (isStable && isLevel && autoCaptureActive) {
+                stableCount++;
+                if (stableCount >= 3) {
+                    triggerAutoCapture();
+                } else {
+                    instruction.textContent = `OMR Sheet Aligned! Hold still... (${stableCount}/3)`;
+                    instruction.style.color = '#10B981';
+                    guideCorners.setAttribute('stroke', '#10B981');
+                }
+            } else {
+                stableCount = 0;
+                if (!isLevel) {
+                    instruction.textContent = "Corners detected. Level phone flat.";
+                    instruction.style.color = '#FBBF24';
+                    guideCorners.setAttribute('stroke', '#FBBF24');
+                } else {
+                    instruction.textContent = "Hold phone steady...";
+                    instruction.style.color = '#FBBF24';
+                    guideCorners.setAttribute('stroke', '#FBBF24');
+                }
+            }
+        } else {
+            stableCount = 0;
+            lastCenters = null;
+            
+            let missing = [];
+            if (!tlResult.detected) missing.push("TL");
+            if (!trResult.detected) missing.push("TR");
+            if (!blResult.detected) missing.push("BL");
+            if (!brResult.detected) missing.push("BR");
+            
+            guideCorners.setAttribute('stroke', '#FFFFFF');
+            if (missing.length === 4) {
+                instruction.textContent = "Align OMR corners with guide marks";
+                instruction.style.color = 'rgba(255, 255, 255, 0.8)';
+            } else {
+                instruction.textContent = `Aligning: adjust ${missing.join(', ')}`;
+                instruction.style.color = '#EF4444';
+            }
         }
     }
 

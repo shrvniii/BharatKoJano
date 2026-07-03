@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone
 from .models import OMRSubmission
 from results.models import Result
@@ -113,6 +113,7 @@ def evaluate_sheet(warped_gray):
     
     bubble_r = 10  # Radius in pixels
     detected_answers = []
+    question_confidences = []
     
     # Apply Otsu's thresholding to get a clean binary image
     # Invert so bubbles are white (255) and paper is black (0)
@@ -145,30 +146,41 @@ def evaluate_sheet(warped_gray):
             bubble_stats.append(fill_ratio)
             
         # Determine which bubbles are filled
-        # Threshold adjusted to 0.60 to distinguish empty bubbles with letters/borders (0.3-0.45) from filled bubbles (~0.85-1.0)
         fill_threshold = 0.60
         filled_indices = [i + 1 for i, ratio in enumerate(bubble_stats) if ratio > fill_threshold]
         
+        sorted_stats = sorted(bubble_stats, reverse=True)
         if len(filled_indices) == 1:
-            return filled_indices[0]  # Exactly one bubble filled (1 = A, 2 = B, 3 = C, 4 = D)
+            q_conf = sorted_stats[0] - sorted_stats[1]
+            detected = filled_indices[0]
         elif len(filled_indices) == 0:
-            return 0  # Unanswered
+            q_conf = 1.0 - sorted_stats[0]
+            detected = 0
         else:
-            return 5  # Multi-marked (double-marked)
+            q_conf = 0.1
+            detected = 5
+            
+        # Bound between 0 and 1
+        q_conf = min(1.0, max(0.0, q_conf))
+        return detected, q_conf
             
     # Process Q1 - Q25
     for r in range(25):
         y = row_y_centers[r]
-        ans = check_question(col1_x_centers, y)
+        ans, conf = check_question(col1_x_centers, y)
         detected_answers.append(ans)
+        question_confidences.append(conf)
         
     # Process Q26 - Q50
     for r in range(25):
         y = row_y_centers[r]
-        ans = check_question(col2_x_centers, y)
+        ans, conf = check_question(col2_x_centers, y)
         detected_answers.append(ans)
+        question_confidences.append(conf)
         
-    return detected_answers
+    avg_conf = sum(question_confidences) / len(question_confidences)
+    confidence_score = int(avg_conf * 100)
+    return detected_answers, confidence_score
 
 def detect_roll_number(thresh):
     """
@@ -342,70 +354,56 @@ def evaluate_and_grade_submission(submission_id):
             if not submission.participant:
                 detected_roll = detect_roll_number(thresh)
                 
-                # Check if it was only partially bubbled (contains '?')
-                if "?" in detected_roll:
-                    # Try to resolve it if there is a unique candidate matching the filled prefix
-                    prefix = detected_roll.replace("?", "")
-                    if len(prefix) >= 2:  # Must have at least the 2-digit school code prefix
-                        matches = Participant.objects.filter(roll_number__startswith=prefix)
-                        
-                        # Exclude candidates who already have an OMR submission
-                        available_matches = []
-                        for p in matches:
-                            if not OMRSubmission.objects.filter(participant=p).exclude(pk=submission.pk).exists():
-                                available_matches.append(p)
-                                
-                        if len(available_matches) == 1:
-                            participant = available_matches[0]
-                            # Soft fallback log
-                            import logging
-                            logger = logging.getLogger(__name__)
-                            logger.info(f"OMR Roll No partially bubbled as '{detected_roll}'. Unique match resolved to: {participant.roll_number}")
-                        else:
-                            raise ValueError(
-                                f"Could not clearly read the roll number from the sheet. Detected '{detected_roll}'. "
-                                f"Found {len(available_matches)} potential candidate matches in the database."
-                            )
-                    else:
-                        raise ValueError(f"Could not clearly read the roll number from the sheet. Detected: {detected_roll}")
-                else:
-                    try:
-                        participant = Participant.objects.get(roll_number=detected_roll)
-                    except Participant.DoesNotExist:
-                        # Automatically create a placeholder participant
-                        from schools.models import School
-                        school_code = detected_roll[:2]
-                        school = School.objects.filter(code=school_code).first()
-                        if not school:
-                            school = School.objects.create(
-                                name=f"School (Code: {school_code})",
-                                code=school_code
-                            )
-                        
-                        detected_set = detect_exam_set(thresh) or 'SET_A'
-                        
-                        # Determine group based on unique number range (0-499 = JUNIOR, 500-999 = SENIOR)
-                        try:
-                            unique_val = int(detected_roll[2:])
-                            if 0 <= unique_val <= 499:
-                                detected_group = 'JUNIOR'
-                            else:
-                                detected_group = 'SENIOR'
-                        except ValueError:
-                            detected_group = 'JUNIOR'
-                            
-                        participant = Participant.objects.create(
-                            roll_number=detected_roll,
-                            school=school,
-                            group=detected_group,
-                            paper_set=detected_set
-                        )
+                # Check if it was only partially read (contains '?')
+                if "?" in detected_roll or len(detected_roll) != 5:
+                    raise ValueError(f"Could not clearly read the 5-digit roll number (detected: {detected_roll})")
+                
+                detected_group = detect_group(thresh)
+                if not detected_group:
+                    raise ValueError("Could not clearly read the Group category bubble (Junior/Senior)")
                     
-                    # Check if this participant already has a submission
-                    if OMRSubmission.objects.filter(participant=participant).exclude(pk=submission.pk).exists():
-                        raise ValueError(f"Participant {detected_roll} already has an OMR submission.")
+                detected_set = detect_exam_set(thresh) or 'SET_A'
+                
+                # Get or create participant
+                from schools.models import School
+                school_code = detected_roll[:2]
+                school = School.objects.filter(code=school_code).first()
+                if not school:
+                    school = School.objects.create(
+                        name=f"School (Code: {school_code})",
+                        code=school_code
+                    )
+                
+                try:
+                    with transaction.atomic():
+                        participant, created = Participant.objects.get_or_create(
+                            roll_number=detected_roll,
+                            group=detected_group,
+                            defaults={
+                                'school': school,
+                                'paper_set': detected_set
+                            }
+                        )
+                except IntegrityError:
+                    # Retrieve the one created in the concurrent thread
+                    participant = Participant.objects.get(
+                        roll_number=detected_roll,
+                        group=detected_group
+                    )
                 
                 submission.participant = participant
+
+            # Check if this participant already has a successful submission
+            existing_eval = OMRSubmission.objects.filter(
+                participant=submission.participant,
+                status='EVALUATED'
+            ).exclude(pk=submission.pk).first()
+            
+            if existing_eval:
+                operator_name = existing_eval.operator.username if existing_eval.operator else "Unknown"
+                scan_time = existing_eval.uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
+                # Raise special prefix so the view can catch it and show duplicate warning screen
+                raise ValueError(f"DUPLICATE_SCAN:{submission.participant.roll_number}:{submission.participant.group}:{scan_time}:{operator_name}")
             
             # Step 5: Auto-resolve answer key if not set
             if not submission.answer_key:
@@ -422,7 +420,7 @@ def evaluate_and_grade_submission(submission_id):
                     )
             
             # Step 6: Evaluate question bubbles
-            detected_answers = evaluate_sheet(warped)
+            detected_answers, confidence_score = evaluate_sheet(warped)
             
             # Step 7: Compare against answer key
             answer_key = submission.answer_key
@@ -475,6 +473,7 @@ def evaluate_and_grade_submission(submission_id):
                     'percentage': percentage,
                     'unanswered_count': unanswered_count,
                     'multi_marked_count': multi_marked_count,
+                    'confidence_score': confidence_score,
                     'question_breakdown': question_breakdown
                 }
             )

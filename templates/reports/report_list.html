@@ -21,7 +21,7 @@
                 <select id="individual-select" class="form-control" style="height: 38px; font-size: 13px;">
                     <option value="">Select Student...</option>
                     {% for p in participants %}
-                        <option value="{{ p.pk }}">{{ p.roll_number }} - {{ p.full_name }}</option>
+                        <option value="{{ p.pk }}">{{ p.roll_number }} - {{ p.student_name|default:"Student" }}</option>
                     {% empty %}
                         <option value="">No evaluated students</option>
                     {% endfor %}
@@ -134,36 +134,48 @@
             </a>
         </div>
     </div>
+</div>
+
+<!-- Pre-printed School OMR Packs Section -->
+<div class="card" style="margin-top: 24px; border-top: 4px solid #EC4899; padding: 24px;">
+    <h3 style="font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text-primary);">
+        <i class="bi bi-printer-fill" style="color: #EC4899;"></i>
+        <span>Pre-printed School OMR Packs</span>
+    </h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+        Each school pack PDF contains exactly 400 pages: 200 Junior sheets (Roll SS001 to SS200) and 200 Senior sheets (Roll SS001 to SS200) with pre-printed school name, code, group, and pre-marked roll number bubbles. Download, print, and distribute directly to students.
+    </p>
     
-    <!-- Pre-printed OMR Sheets (Bulk) -->
-    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; border-top: 4px solid #EC4899;">
-        <div>
-            <h3 style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                <i class="bi bi-printer-fill" style="color: #EC4899;"></i>
-                <span>Pre-printed OMR Sheets</span>
-            </h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                Download OMR sheets with pre-printed student names, schools, groups, and pre-bubbled roll numbers. Select a school to download in bulk, or download all sheets.
-            </p>
-            <div class="form-group" style="margin-bottom: 0; display: flex; flex-direction: column; gap: 8px;">
-                <select id="omr-school-select" class="form-control" style="height: 38px; font-size: 13px;">
-                    <option value="">Select School...</option>
-                    {% for school in schools %}
-                        <option value="{{ school.pk }}">{{ school.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-            <a href="{% url 'reports:all_omr' %}" class="btn btn-secondary btn-sm" style="border-color: #EC4899; color: #EC4899;">
-                Download All OMRs
-            </a>
-            <button onclick="downloadSchoolOMRs()" class="btn btn-primary btn-sm" id="omr-school-btn" style="background-color: #EC4899; color: white;" disabled>
-                <i class="bi bi-download"></i> School OMRs
-            </button>
-        </div>
+    <div class="table-responsive">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                    <th style="padding: 10px; width: 100px;">School Code</th>
+                    <th style="padding: 10px;">School Name</th>
+                    <th style="padding: 10px; text-align: right; width: 200px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for school in schools %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="table-mono" style="font-weight: 600; padding: 12px 10px;">{{ school.code|default:"—" }}</td>
+                        <td style="font-weight: 500; padding: 12px 10px;">{{ school.name }}</td>
+                        <td style="text-align: right; padding: 12px 10px;">
+                            <a href="{% url 'reports:school_omr' school.pk %}" class="btn btn-primary btn-sm" style="background-color: #EC4899; color: white; border: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px;">
+                                <i class="bi bi-download"></i> Download Pack
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            No schools registered in the system. Go to Schools tab to register.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    
 </div>
 {% endblock %}
 
@@ -173,8 +185,6 @@
     const indBtn = document.getElementById('individual-btn');
     const schSelect = document.getElementById('school-select');
     const schBtn = document.getElementById('school-btn');
-    const omrSchSelect = document.getElementById('omr-school-select');
-    const omrSchBtn = document.getElementById('omr-school-btn');
     
     if (indSelect && indBtn) {
         indSelect.addEventListener('change', function() {
@@ -185,12 +195,6 @@
     if (schSelect && schBtn) {
         schSelect.addEventListener('change', function() {
             schBtn.disabled = !this.value;
-        });
-    }
-    
-    if (omrSchSelect && omrSchBtn) {
-        omrSchSelect.addEventListener('change', function() {
-            omrSchBtn.disabled = !this.value;
         });
     }
     
@@ -205,13 +209,6 @@
         const val = schSelect.value;
         if (val) {
             window.location.href = `/reports/download/school/${val}/`;
-        }
-    }
-    
-    function downloadSchoolOMRs() {
-        const val = omrSchSelect.value;
-        if (val) {
-            window.location.href = `/reports/download/school-omr/${val}/`;
         }
     }
 </script>

@@ -13,6 +13,35 @@ from scanner.models import OMRSubmission
 from results.models import Result
 from scanner.evaluator import evaluate_and_grade_submission, get_row_y_coordinate
 
+def draw_group_and_set_bubbles(img, group='JUNIOR', paper_set='SET_A'):
+    # Group: JUNIOR -> cx=64, cy=714. SENIOR -> cx=132, cy=714
+    group_x_centers = [64, 132]
+    cy_g = 714
+    oy_g = int(50 + cy_g * (1100.0 / 1200.0))
+    
+    # Paper Set: SET_A -> cx=64, cy=104. SET_B -> cx=107, cy=104
+    set_x_centers = [64, 107]
+    cy_s = 104
+    oy_s = int(50 + cy_s * (1100.0 / 1200.0))
+    
+    # Draw Group
+    for idx, cx in enumerate(group_x_centers):
+        ox = int(50 + cx * 0.9)
+        is_filled = (group == 'JUNIOR' and idx == 0) or (group == 'SENIOR' and idx == 1)
+        if is_filled:
+            cv2.circle(img, (ox, oy_g), 8, (0, 0, 0), -1)
+        else:
+            cv2.circle(img, (ox, oy_g), 8, (0, 0, 0), 1)
+            
+    # Draw Paper Set
+    for idx, cx in enumerate(set_x_centers):
+        ox = int(50 + cx * 0.9)
+        is_filled = (paper_set == 'SET_A' and idx == 0) or (paper_set == 'SET_B' and idx == 1)
+        if is_filled:
+            cv2.circle(img, (ox, oy_s), 8, (0, 0, 0), -1)
+        else:
+            cv2.circle(img, (ox, oy_s), 8, (0, 0, 0), 1)
+
 class OMRPipelineTestCase(TestCase):
     def setUp(self):
         # Create school and participant
@@ -96,6 +125,9 @@ class OMRPipelineTestCase(TestCase):
                     cv2.circle(img, (ox, oy), 8, (0, 0, 0), -1) # Filled
                 else:
                     cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)  # Empty
+        
+        # Draw Group and Paper Set bubbles
+        draw_group_and_set_bubbles(img, 'JUNIOR', 'SET_A')
         
         # Draw the question bubbles on our mock sheet
         for q in range(50):
@@ -240,6 +272,9 @@ class BulkOMRUploadTestCase(TestCase):
                 else:
                     cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)  # Empty
         
+        # Draw Group and Paper Set bubbles
+        draw_group_and_set_bubbles(img, 'JUNIOR', 'SET_A')
+        
         # Draw question bubbles (all set to A/1)
         col1_x_centers = [359, 402, 445, 487]
         col2_x_centers = [718, 761, 804, 847]
@@ -351,6 +386,9 @@ class BulkOMRUploadTestCase(TestCase):
                     cv2.circle(img, (ox, oy), 8, (0, 0, 0), -1) # Filled
                 else:
                     cv2.circle(img, (ox, oy), 8, (0, 0, 0), 1)  # Empty
+        
+        # Draw Group and Paper Set bubbles
+        draw_group_and_set_bubbles(img, 'JUNIOR', 'SET_A')
         
         # Draw question bubbles (all set to A/1)
         col1_x_centers = [359, 402, 445, 487]

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 import os
 import shutil
 from django.conf import settings
@@ -7,11 +7,13 @@ from django.views.generic import DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
+from django.db import transaction
 from .models import OMRSubmission, BatchProcess
 from .forms import OMRUploadForm
 from .evaluator import evaluate_and_grade_submission
 from .batch_processor import safe_extract_zip, start_batch_processing
 from answer_keys.models import AnswerKey
+from participants.models import Participant
 
 class OMRUploadView(LoginRequiredMixin, View):
     def get(self, request):
@@ -21,39 +23,23 @@ class OMRUploadView(LoginRequiredMixin, View):
     def post(self, request):
         form = OMRUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            participant = form.cleaned_data.get('participant')
-            
             # Save the submission
             submission = form.save(commit=False)
-            
-            if participant:
-                # Resolve the correct AnswerKey (manual override)
-                try:
-                    answer_key = AnswerKey.objects.get(
-                        group=participant.group,
-                        paper_set=participant.paper_set
-                    )
-                    submission.answer_key = answer_key
-                except AnswerKey.DoesNotExist:
-                    messages.error(
-                        request, 
-                        f"Cannot evaluate sheet: The Answer Key for "
-                        f"'{participant.get_group_display()} - {participant.get_paper_set_display()}' "
-                        f"has not been configured yet."
-                    )
-                    return render(request, 'scanner/upload.html', {'form': form})
-            
+            submission.operator = request.user
             submission.status = 'PENDING'
             submission.save()
             
             # Trigger OMR evaluation (which handles auto-detecting roll number and linking)
             success, msg = evaluate_and_grade_submission(submission.pk)
             
+            submission.refresh_from_db()
             if success:
-                submission.refresh_from_db()
                 messages.success(request, f"OMR Sheet for {submission.participant.roll_number} evaluated successfully!")
                 return redirect('results:detail', pk=submission.result.pk)
             else:
+                if submission.status == 'ERROR' and submission.error_message and submission.error_message.startswith("DUPLICATE_SCAN"):
+                    return redirect('scanner:duplicate_warning', pk=submission.pk)
+                    
                 messages.error(request, f"OMR Evaluation failed: {msg}")
                 # Clean up the submission if it failed and has no participant linked
                 if not submission.participant:
@@ -61,6 +47,85 @@ class OMRUploadView(LoginRequiredMixin, View):
                 return redirect('scanner:upload')
                 
         return render(request, 'scanner/upload.html', {'form': form})
+
+class OMRDuplicateWarningView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        new_submission = get_object_or_404(OMRSubmission, pk=pk)
+        
+        # Error message is format: DUPLICATE_SCAN:roll_number:group:scan_time:operator_name
+        parts = new_submission.error_message.split(':') if new_submission.error_message else []
+        if len(parts) >= 6:
+            roll_number = parts[1]
+            group = parts[2]
+            scan_time = f"{parts[3]}:{parts[4]}:{parts[5]}"
+            operator_name = parts[6] if len(parts) > 6 else "Unknown"
+        else:
+            roll_number = "Unknown"
+            group = "Unknown"
+            scan_time = "Unknown"
+            operator_name = "Unknown"
+            if new_submission.participant:
+                roll_number = new_submission.participant.roll_number
+                group = new_submission.participant.group
+                existing_eval = OMRSubmission.objects.filter(
+                    participant=new_submission.participant,
+                    status='EVALUATED'
+                ).exclude(pk=new_submission.pk).first()
+                if existing_eval:
+                    scan_time = existing_eval.uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
+                    operator_name = existing_eval.operator.username if existing_eval.operator else "Unknown"
+
+        context = {
+            'new_submission': new_submission,
+            'roll_number': roll_number,
+            'group': group.title(),
+            'scan_time': scan_time,
+            'operator_name': operator_name,
+            'is_admin': request.user.is_staff or request.user.is_superuser
+        }
+        return render(request, 'scanner/duplicate_warning.html', context)
+
+class OMROverrideDuplicateView(LoginRequiredMixin, View):
+    def post(self, request, new_submission_id):
+        if not (request.user.is_staff or request.user.is_superuser):
+            messages.error(request, "Permission denied: Only administrators can replace scans.")
+            return redirect('scanner:upload')
+            
+        new_submission = get_object_or_404(OMRSubmission, pk=new_submission_id)
+        participant = new_submission.participant
+        
+        if not participant:
+            messages.error(request, "Error: No participant linked to this submission.")
+            return redirect('scanner:upload')
+            
+        try:
+            with transaction.atomic():
+                # Delete previous evaluated submissions for this participant
+                OMRSubmission.objects.filter(
+                    participant=participant,
+                    status='EVALUATED'
+                ).exclude(pk=new_submission.pk).delete()
+                
+                # Mark this submission as pending so it can evaluate cleanly
+                new_submission.status = 'PENDING'
+                new_submission.error_message = None
+                new_submission.operator = request.user
+                new_submission.save()
+                
+            # Run evaluation on the new submission
+            success, msg = evaluate_and_grade_submission(new_submission.pk)
+            
+            if success:
+                new_submission.refresh_from_db()
+                messages.success(request, f"OMR Sheet for {new_submission.participant.roll_number} evaluated and replaced successfully!")
+                return redirect('results:detail', pk=new_submission.result.pk)
+            else:
+                messages.error(request, f"Evaluation override failed: {msg}")
+                return redirect('scanner:upload')
+                
+        except Exception as e:
+            messages.error(request, f"Override transaction failed: {str(e)}")
+            return redirect('scanner:upload')
 
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator

@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Participants{% endblock %}
+{% block title %}Student Records{% endblock %}
 
-{% block page_title %}Participant Management{% endblock %}
+{% block page_title %}Student Records Index{% endblock %}
 
 {% block content %}
 <!-- Filters Card -->
@@ -12,7 +12,7 @@
             <!-- Search -->
             <div>
                 <label class="form-label" style="font-size: 12px; text-transform: uppercase;">Search</label>
-                <input type="text" name="q" class="form-control" placeholder="Name or Roll No..." value="{{ request.GET.q|default:'' }}" style="height: 38px;">
+                <input type="text" name="q" class="form-control" placeholder="Search Roll No..." value="{{ request.GET.q|default:'' }}" style="height: 38px;">
             </div>
             
             <!-- School Filter -->
@@ -65,15 +65,6 @@
                     <i class="bi bi-funnel"></i> Apply Filters
                 </button>
             </div>
-            
-            <div style="display: flex; gap: 8px;">
-                <a href="{% url 'participants:import' %}" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-upload"></i> Bulk Import
-                </a>
-                <a href="{% url 'participants:add' %}" class="btn btn-primary btn-sm" style="background-color: var(--accent-color);">
-                    <i class="bi bi-plus-circle"></i> Register Participant
-                </a>
-            </div>
         </div>
     </form>
 </div>
@@ -84,6 +75,7 @@
         <thead>
             <tr>
                 <th>Roll Number</th>
+                <th>Student Name</th>
                 <th>School</th>
                 <th>Group</th>
                 <th>Paper Set</th>
@@ -95,6 +87,7 @@
             {% for participant in participants %}
                 <tr>
                     <td class="table-mono" style="font-weight: 600;">{{ participant.roll_number }}</td>
+                    <td style="font-weight: 500;">{{ participant.student_name|default:"—" }}</td>
                     <td>{{ participant.school.name }}</td>
                     <td><span class="badge badge-info">{{ participant.get_group_display }}</span></td>
                     <td><span class="badge badge-info">{{ participant.get_paper_set_display }}</span></td>
@@ -134,7 +127,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">
                         <i class="bi bi-people" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                         No participants found matching the criteria.
                     </td>

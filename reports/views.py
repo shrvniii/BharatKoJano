@@ -5,7 +5,12 @@ from django.http import HttpResponse, Http404
 from django.contrib import messages
 from .pdf_builder import build_individual_slip_pdf, build_school_results_pdf, build_ranking_list_pdf
 from .csv_builder import build_rankings_csv
-from scanner.omr_generator import generate_blank_omr_pdf, generate_personalized_omr_pdf, generate_personalized_omr_sheets_pdf
+from scanner.omr_generator import (
+    generate_blank_omr_pdf, 
+    generate_personalized_omr_pdf, 
+    generate_personalized_omr_sheets_pdf,
+    generate_school_omr_sheets_pdf
+)
 from results.models import Result
 from results.ranking import calculate_dense_ranks
 from participants.models import Participant
@@ -81,13 +86,28 @@ class RankingReportDownloadView(LoginRequiredMixin, View):
 
 class CSVReportDownloadView(LoginRequiredMixin, View):
     def get(self, request):
-        results = list(Result.objects.select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
-        calculate_dense_ranks(results)
+        submissions = OMRSubmission.objects.select_related(
+            'participant', 
+            'participant__school', 
+            'result',
+            'operator'
+        ).all()
         
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="quizmaster_standings.csv"'
+        def sort_key(s):
+            p = s.participant
+            school_code = p.school.code if (p and p.school) else 'ZZ'
+            roll_number = p.roll_number if p else 'ZZZZZ'
+            return (school_code, roll_number)
+            
+        submissions = sorted(submissions, key=sort_key)
         
-        build_rankings_csv(results, response)
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="bkj_oms_standings.csv"'
+        
+        # Write Excel UTF-8 BOM
+        response.write('\ufeff'.encode('utf-8'))
+        
+        build_rankings_csv(submissions, response)
         return response
 
 class BlankOMRSheetDownloadView(LoginRequiredMixin, View):
@@ -131,42 +151,15 @@ class PersonalizedOMRSheetDownloadView(LoginRequiredMixin, View):
 class SchoolOMRSheetsDownloadView(LoginRequiredMixin, View):
     def get(self, request, school_id):
         school = get_object_or_404(School, pk=school_id)
-        participants = Participant.objects.filter(school=school).order_by('roll_number')
-        if not participants.exists():
-            messages.error(request, f"No participants registered for {school.name}.")
-            return redirect('reports:list')
-            
+        
         response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="omr_sheets_school_{school.code}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="School_{school.code}.pdf"'
         
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
             tmp_path = tmp.name
             
         try:
-            generate_personalized_omr_sheets_pdf(tmp_path, participants)
-            with open(tmp_path, 'rb') as f:
-                response.write(f.read())
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-                
-        return response
-
-class AllOMRSheetsDownloadView(LoginRequiredMixin, View):
-    def get(self, request):
-        participants = Participant.objects.select_related('school').order_by('school__name', 'roll_number')
-        if not participants.exists():
-            messages.error(request, "No participants registered in the database.")
-            return redirect('reports:list')
-            
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="omr_sheets_all_participants.pdf"'
-        
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-            tmp_path = tmp.name
-            
-        try:
-            generate_personalized_omr_sheets_pdf(tmp_path, participants)
+            generate_school_omr_sheets_pdf(tmp_path, school)
             with open(tmp_path, 'rb') as f:
                 response.write(f.read())
         finally:

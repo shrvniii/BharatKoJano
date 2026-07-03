@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Duplicate Scan Detected | BKJ-OMS{% endblock %}
+
+{% block page_title %}Duplicate Scan Warning{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; padding: 0 20px;">
+    <div class="card" style="border-top: 5px solid #F59E0B; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.15); padding: 32px; border-radius: 16px; background-color: var(--card-bg);">
+        <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 24px;">
+            <div style="width: 64px; height: 64px; background-color: #FEF3C7; color: #D97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 16px; animation: pulse 2s infinite;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Duplicate Scan Detected</h2>
+            <p style="font-size: 14px; color: var(--text-muted); max-width: 420px;">
+                An OMR sheet with this exact Roll Number and Group has already been evaluated in the database.
+            </p>
+        </div>
+        
+        <div style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+            <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px; font-weight: 600;">Scan Details</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Roll Number:</span>
+                    <strong style="color: var(--text-primary); font-family: monospace; font-size: 15px;">{{ roll_number }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Group Category:</span>
+                    <strong style="color: var(--text-primary);">{{ group }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 2px;">
+                    <span style="color: var(--text-muted);">Previous Scan Time:</span>
+                    <strong style="color: var(--text-primary);">{{ scan_time }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Operator:</span>
+                    <strong style="color: var(--text-primary); font-style: italic;">@{{ operator_name }}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            {% if is_admin %}
+                <div class="alert alert-warning" style="font-size: 13px; margin-bottom: 12px; background-color: #FEF3C7; border: 1px solid #FCD34D; color: #92400E; display: flex; gap: 8px; align-items: flex-start; padding: 12px; border-radius: 8px;">
+                    <i class="bi bi-info-circle-fill" style="margin-top: 2px;"></i>
+                    <span>
+                        <strong>Administrator Actions:</strong> You have permissions to override this record. Clicking "Replace Scan" will delete the previous evaluated submission and record this new scan.
+                    </span>
+                </div>
+                
+                <form method="post" action="{% url 'scanner:override_duplicate' new_submission.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" style="width: 100%; background-color: #D97706; border: none; padding: 12px; font-weight: 600; font-size: 15px; border-radius: 8px; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3); transition: all 0.2s; color: white;">
+                        <i class="bi bi-arrow-left-right"></i>
+                        <span>Replace Existing Scan</span>
+                    </button>
+                </form>
+            {% else %}
+                <div class="alert alert-danger" style="font-size: 13px; margin-bottom: 12px; display: flex; gap: 8px; align-items: flex-start; padding: 12px; border-radius: 8px;">
+                    <i class="bi bi-x-circle-fill" style="margin-top: 2px;"></i>
+                    <span>
+                        Only administrators can replace an existing evaluated scan. Please contact the dashboard supervisor to override this sheet.
+                    </span>
+                </div>
+            {% endif %}
+            
+            <a href="{% url 'scanner:upload' %}" class="btn btn-secondary" style="width: 100%; padding: 12px; font-weight: 600; border-radius: 8px; justify-content: center; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="bi bi-camera"></i>
+                <span>Dismiss & Return to Scanner</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+</style>
+{% endblock %}

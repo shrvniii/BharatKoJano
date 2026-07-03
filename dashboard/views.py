@@ -22,16 +22,35 @@ class DashboardView(LoginRequiredMixin, View):
         
         evaluated_count = OMRSubmission.objects.filter(status='EVALUATED').count()
         error_count = OMRSubmission.objects.filter(status='ERROR').count()
-        pending_count = total_participants - evaluated_count
+        
+        # 1. Total Generated Sheets (400 per school)
+        total_generated_sheets = total_schools * 400
+        
+        # 2. Remaining Count
+        remaining_count = max(0, total_generated_sheets - evaluated_count)
+        
+        # 3. Duplicate Count (Submissions that failed due to duplicate check)
+        duplicate_count = OMRSubmission.objects.filter(
+            status='ERROR', 
+            error_message__startswith='DUPLICATE_SCAN'
+        ).count()
+        
+        # 4. Review-Required Count (Submissions that failed due to validation/alignment/etc.)
+        review_required_count = OMRSubmission.objects.filter(status='ERROR').exclude(
+            error_message__startswith='DUPLICATE_SCAN'
+        ).count()
         
         progress_pct = 0
-        if total_participants > 0:
-            progress_pct = int((evaluated_count / total_participants) * 100)
+        if total_generated_sheets > 0:
+            progress_pct = int((evaluated_count / total_generated_sheets) * 100)
             
         # Score aggregates
         avg_score = Result.objects.aggregate(avg=Avg('score'))['avg'] or 0
         high_score = Result.objects.aggregate(max=Max('score'))['max'] or 0
         low_score = Result.objects.aggregate(min=Min('score'))['min'] or 0
+        
+        # 5. Average Confidence Score
+        avg_confidence = Result.objects.aggregate(avg=Avg('confidence_score'))['avg'] or 0
         
         # Recent uploads
         recent_uploads = OMRSubmission.objects.select_related('participant', 'participant__school').order_by('-uploaded_at')[:10]
@@ -40,21 +59,44 @@ class DashboardView(LoginRequiredMixin, View):
         keys_configured = AnswerKey.objects.count()
         keys_ready = (keys_configured == 4)
         
+        # 6. School-wise progress stats
+        schools = School.objects.all().order_by('code')
+        school_list = []
+        for s in schools:
+            scanned = OMRSubmission.objects.filter(
+                participant__school=s,
+                status='EVALUATED'
+            ).count()
+            total_sheets = 400
+            remaining = max(0, total_sheets - scanned)
+            progress = int((scanned / total_sheets) * 100) if total_sheets > 0 else 0
+            
+            school_list.append({
+                'school': s,
+                'scanned': scanned,
+                'remaining': remaining,
+                'progress': progress
+            })
+            
         context = {
             'total_schools': total_schools,
             'total_participants': total_participants,
             'junior_count': junior_count,
             'senior_count': senior_count,
             'evaluated_count': evaluated_count,
-            'pending_count': pending_count,
-            'error_count': error_count,
+            'total_generated_sheets': total_generated_sheets,
+            'remaining_count': remaining_count,
+            'duplicate_count': duplicate_count,
+            'review_required_count': review_required_count,
             'progress_pct': progress_pct,
             'avg_score': round(avg_score, 1),
             'high_score': high_score,
             'low_score': low_score,
+            'avg_confidence': round(avg_confidence, 1),
             'recent_uploads': recent_uploads,
             'keys_configured': keys_configured,
             'keys_ready': keys_ready,
+            'school_list': school_list,
         }
         
         return render(request, 'dashboard/home.html', context)
