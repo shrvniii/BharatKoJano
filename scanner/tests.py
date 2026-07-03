@@ -196,9 +196,27 @@ class OMRPipelineTestCase(TestCase):
         self.assertEqual(breakdown[5]['status'], 'multi-marked')  # Q6
         self.assertEqual(breakdown[6]['status'], 'correct')      # Q7
         
+        # Test deletion of the evaluated submission
+        from django.contrib.auth.models import User
+        from django.urls import reverse
+        
+        user = User.objects.create_user(username='tester_del', password='password123')
+        self.client.force_login(user)
+        
+        delete_url = reverse('scanner:delete_submission', kwargs={'pk': submission.pk})
+        response = self.client.post(delete_url)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify it was deleted
+        self.assertFalse(OMRSubmission.objects.filter(pk=submission.pk).exists())
+        self.assertFalse(Result.objects.filter(submission=submission).exists())
+        
         # Cleanup file on disk
         if os.path.exists(submission.image.path):
-            os.remove(submission.image.path)
+            try:
+                os.remove(submission.image.path)
+            except Exception:
+                pass
             
         print("OMR pipeline unit test passed successfully with new layout!")
 

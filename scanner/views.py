@@ -264,14 +264,12 @@ class BatchResultsView(LoginRequiredMixin, View):
 class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
     model = OMRSubmission
     template_name = 'scanner/submission_confirm_delete.html'
-    success_url = reverse_lazy('results:list')
+    success_url = reverse_lazy('scanner:upload')
 
     def form_valid(self, form):
         submission = self.get_object()
         participant_name = submission.participant.roll_number if submission.participant else "Unknown Student"
         answer_key = submission.answer_key
-        
-        response = super().form_valid(form)
         
         if answer_key:
             # Check if other submissions still use this answer key
@@ -279,6 +277,7 @@ class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
             if not other_submissions_exist:
                 answer_key.is_locked = False
                 answer_key.save()
-            
+                
+        response = super().form_valid(form)
         messages.success(self.request, f"OMR submission and result for '{participant_name}' have been reset.")
         return response

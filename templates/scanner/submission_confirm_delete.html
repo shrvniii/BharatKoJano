@@ -23,7 +23,11 @@
     <form method="post">
         {% csrf_token %}
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <a href="{% url 'results:detail' submission.result.pk %}" class="btn btn-secondary">Cancel</a>
+            {% if submission.result %}
+                <a href="{% url 'results:detail' submission.result.pk %}" class="btn btn-secondary">Cancel</a>
+            {% else %}
+                <a href="{% url 'scanner:upload' %}" class="btn btn-secondary">Cancel</a>
+            {% endif %}
             <button type="submit" class="btn btn-danger">
                 <i class="bi bi-trash"></i>
                 <span>Yes, Delete & Reset</span>
