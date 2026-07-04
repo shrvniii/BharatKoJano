@@ -66,59 +66,39 @@
     </div>
 </div>
 
-<div class="grid-3" style="margin-bottom: 24px;">
+<div class="grid-4" style="margin-bottom: 24px;">
     <!-- Remaining Sheets -->
-    <div class="card stat-card warning">
+    <div class="card stat-card warning" style="padding: 16px;">
         <div class="stat-info">
             <span class="stat-label">Remaining Sheets</span>
-            <span class="stat-value">{{ remaining_count }}</span>
+            <span class="stat-value" style="font-size: 24px;">{{ remaining_count }}</span>
         </div>
         <i class="bi bi-hourglass-split stat-icon" style="color: var(--warning-color);"></i>
     </div>
     
-    <!-- Duplicate Scans -->
-    <div class="card stat-card danger" style="border-left: 4px solid #F59E0B;">
-        <div class="stat-info">
-            <span class="stat-label">Duplicate Scans Blocked</span>
-            <span class="stat-value">{{ duplicate_count }}</span>
-        </div>
-        <i class="bi bi-shield-exclamation stat-icon" style="color: #F59E0B;"></i>
-    </div>
-    
-    <!-- Review-Required Errors -->
-    <div class="card stat-card danger">
-        <div class="stat-info">
-            <span class="stat-label">Review-Required Errors</span>
-            <span class="stat-value">{{ review_required_count }}</span>
-        </div>
-        <i class="bi bi-exclamation-octagon-fill stat-icon" style="color: var(--danger-color);"></i>
-    </div>
-</div>
-
-<div class="grid-3" style="margin-bottom: 24px;">
     <!-- Average Score -->
-    <div class="card stat-card primary">
+    <div class="card stat-card primary" style="padding: 16px;">
         <div class="stat-info">
             <span class="stat-label">Average Score</span>
-            <span class="stat-value">{{ avg_score }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+            <span class="stat-value" style="font-size: 24px;">{{ avg_score }} <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
         </div>
         <i class="bi bi-calculator stat-icon"></i>
     </div>
     
     <!-- Highest Score -->
-    <div class="card stat-card success">
+    <div class="card stat-card success" style="padding: 16px;">
         <div class="stat-info">
             <span class="stat-label">Highest Score</span>
-            <span class="stat-value">{{ high_score }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+            <span class="stat-value" style="font-size: 24px;">{{ high_score }} <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
         </div>
         <i class="bi bi-trophy stat-icon" style="color: var(--success-color);"></i>
     </div>
     
     <!-- Average Confidence -->
-    <div class="card stat-card success" style="border-left: 4px solid var(--accent-color);">
+    <div class="card stat-card success" style="border-left: 4px solid var(--accent-color); padding: 16px;">
         <div class="stat-info">
             <span class="stat-label">Avg Bubble Confidence</span>
-            <span class="stat-value">{{ avg_confidence }}%</span>
+            <span class="stat-value" style="font-size: 24px;">{{ avg_confidence }}%</span>
         </div>
         <i class="bi bi-bullseye stat-icon" style="color: var(--accent-color);"></i>
     </div>
