@@ -30,15 +30,24 @@ class CSVDownloadTestCase(TestCase):
             question_breakdown=[]
         )
         
-    def test_csv_download(self):
+    def test_excel_download(self):
         self.client.force_login(self.user)
+        # Mark submission as accepted so it is included in export
+        sub = OMRSubmission.objects.first()
+        if sub:
+            sub.is_accepted = True
+            sub.save()
+            
         response = self.client.get(reverse('reports:csv_download'))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
-        content = response.content
-        self.assertIn(b'"=""01001"""', content)
-        self.assertIn(b'"=""01"""', content)
-        self.assertIn(b"Test School", content)
+        self.assertEqual(response['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        
+        # Load output using openpyxl to verify integrity and structure
+        import io
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        self.assertIn("Standings", wb.sheetnames)
+        self.assertIn("Evaluator Summary", wb.sheetnames)
 
 
 class PregeneratedOMRTestCase(TestCase):

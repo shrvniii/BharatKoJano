@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, Http404
 from django.contrib import messages
 from .pdf_builder import build_individual_slip_pdf, build_school_results_pdf, build_ranking_list_pdf
-from .csv_builder import build_rankings_csv
+from .excel_builder import build_rankings_excel
 from scanner.omr_generator import (
     generate_blank_omr_pdf, 
     generate_personalized_omr_pdf, 
@@ -55,6 +55,7 @@ class SchoolReportDownloadView(LoginRequiredMixin, View):
         
         # Get all results for this school, sorted by group and score
         results = list(Result.objects.filter(
+            submission__is_accepted=True,
             participant__school=school
         ).select_related('participant').order_by('participant__group', '-score', 'participant__roll_number'))
         
@@ -77,6 +78,7 @@ class RankingReportDownloadView(LoginRequiredMixin, View):
             raise Http404("Invalid group.")
             
         results = list(Result.objects.filter(
+            submission__is_accepted=True,
             participant__group=group_upper
         ).select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
         
@@ -90,7 +92,7 @@ class RankingReportDownloadView(LoginRequiredMixin, View):
 
 class CSVReportDownloadView(LoginRequiredMixin, View):
     def get(self, request):
-        submissions = OMRSubmission.objects.select_related(
+        submissions = OMRSubmission.objects.filter(is_accepted=True).select_related(
             'participant', 
             'participant__school', 
             'result',
@@ -105,13 +107,10 @@ class CSVReportDownloadView(LoginRequiredMixin, View):
             
         submissions = sorted(submissions, key=sort_key)
         
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = 'attachment; filename="bkj_qms_standings.csv"'
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="bkj_qms_standings.xlsx"'
         
-        # Write Excel UTF-8 BOM
-        response.write('\ufeff'.encode('utf-8'))
-        
-        build_rankings_csv(submissions, response)
+        build_rankings_excel(submissions, response)
         return response
 
 class BlankOMRSheetDownloadView(LoginRequiredMixin, View):

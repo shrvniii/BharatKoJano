@@ -11,6 +11,89 @@ def get_row_y_coordinate(r):
     row_in_block = r % 5
     return 590 - (block_idx * 105) - (row_in_block * 18)
 
+def draw_omr_instructions(c, x, y):
+    """
+    Draws the visual instruction box on the bottom left of the OMR page.
+    """
+    c.setFont("Helvetica-Bold", 7.5)
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawString(x, y, "IMPORTANT INSTRUCTIONS")
+    
+    # Outer thin border for instructions box
+    c.setStrokeColor(HexColor("#CBD5E1"))
+    c.setLineWidth(0.5)
+    c.rect(x - 5, y - 205, 120, 215, fill=0)
+    
+    c.setFont("Helvetica", 6.5)
+    c.setFillColor(black)
+    
+    # Guidelines text
+    c.drawString(x, y - 12, "1. Use Blue/Black Ball Point")
+    c.drawString(x, y - 20, "   pen only. NO GEL PENS.")
+    
+    c.drawString(x, y - 32, "2. Dark pencils can work.")
+    
+    c.drawString(x, y - 44, "3. Shade bubbles completely")
+    c.drawString(x, y - 52, "   and darkly.")
+    
+    c.drawString(x, y - 64, "4. Do not make stray marks")
+    c.drawString(x, y - 72, "   on the sheet.")
+    
+    # Title for marking examples
+    c.setFont("Helvetica-Bold", 7)
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawString(x, y - 88, "MARKING EXAMPLES")
+    
+    c.setFont("Helvetica", 6.5)
+    c.setFillColor(black)
+    
+    bubble_r = 3.5
+    
+    # A. Correct method
+    c.drawString(x, y - 106, "Correct:")
+    c.setStrokeColor(black)
+    c.setFillColor(black)
+    c.circle(x + 55, y - 104, bubble_r, fill=1, stroke=1)
+    
+    # B. Crossed out (Rejected)
+    c.setFillColor(black)
+    c.drawString(x, y - 126, "Crossed out:")
+    c.setFillColor(white)
+    c.circle(x + 55, y - 124, bubble_r, fill=0, stroke=1)
+    c.setStrokeColor(black)
+    c.setLineWidth(0.5)
+    c.line(x + 55 - 3.5, y - 124 - 3.5, x + 55 + 3.5, y - 124 + 3.5)
+    c.line(x + 55 - 3.5, y - 124 + 3.5, x + 55 + 3.5, y - 124 - 3.5)
+    c.drawString(x + 70, y - 126, "(Rejected)")
+    
+    # C. Multi-marked (Rejected)
+    c.setFillColor(black)
+    c.drawString(x, y - 146, "Multi-marked:")
+    c.setFillColor(black)
+    c.circle(x + 55, y - 144, bubble_r, fill=1, stroke=1)
+    c.circle(x + 65, y - 144, bubble_r, fill=1, stroke=1)
+    c.drawString(x + 75, y - 146, "(Rejected)")
+    
+    # D. Partial Fill (Rejected)
+    c.setFillColor(black)
+    c.drawString(x, y - 166, "Partial Fill:")
+    c.setFillColor(white)
+    c.circle(x + 55, y - 164, bubble_r, fill=0, stroke=1)
+    c.setFillColor(black)
+    c.circle(x + 55, y - 164, 1.5, fill=1, stroke=0)  # small dot inside
+    c.drawString(x + 70, y - 166, "(Rejected)")
+
+    # E. Tick Mark (Rejected)
+    c.setFillColor(black)
+    c.drawString(x, y - 186, "Tick Mark:")
+    c.setFillColor(white)
+    c.circle(x + 55, y - 184, bubble_r, fill=0, stroke=1)
+    c.setStrokeColor(black)
+    c.setLineWidth(0.5)
+    c.line(x + 53, y - 184, x + 55, y - 186)
+    c.line(x + 55, y - 186, x + 58, y - 181)
+    c.drawString(x + 70, y - 186, "(Rejected)")
+
 def draw_omr_sheet_on_canvas(c, participant=None):
     """
     Draws the complete OMR sheet layout onto a ReportLab canvas.
@@ -174,6 +257,9 @@ def draw_omr_sheet_on_canvas(c, participant=None):
         else:
             c.setFillColor(white)
             c.circle(bx, by, bubble_r, fill=0, stroke=1)
+            
+    # 4. Instructions Box
+    draw_omr_instructions(c, col0_x, 275)
             
     # Middle Column: Questions 1 - 25
     col1_x = 225

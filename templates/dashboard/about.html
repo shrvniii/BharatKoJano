@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}About | BKJ-QMS{% endblock %}
+
+{% block page_title %}About Bharat Vikas Parishad{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px; max-width: 900px; margin: 0 auto;">
+    
+    <!-- Hero Card -->
+    <div class="card" style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap; border-top: 4px solid var(--warning-color); padding: 32px;">
+        <div style="background-color: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); flex-shrink: 0; margin: 0 auto;">
+            <img src="/static/images/bvp_logo.jpg" alt="BVP Logo" style="height: 120px; width: auto; object-fit: contain;">
+        </div>
+        <div style="flex: 1; min-width: 280px; text-align: left;">
+            <h1 style="color: var(--primary-color); font-size: 26px; font-weight: 800; margin: 0;">BHARAT VIKAS PARISHAD</h1>
+            <p style="font-size: 14px; font-weight: 600; color: var(--warning-color); text-transform: uppercase; margin: 8px 0 16px 0; letter-spacing: 0.5px;">
+                Holistic Development of Bharat Through Seva and Sanskar
+            </p>
+            <p style="font-size: 14.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                Established in **1963**, Bharat Vikas Parishad (BVP) is a service-cum-sanskar oriented, non-political, socio-cultural voluntary organization. With over **2,000 branches** and more than **1 Lakh members** nationwide, it operates through **10 Regions** and **80 Prants** to serve society and nurture values.
+            </p>
+        </div>
+    </div>
+
+    <!-- Five Sutras & Projects -->
+    <div class="grid-2">
+        <div class="card" style="border-left: 4px solid var(--accent-color);">
+            <h3 style="color: var(--primary-color); margin-bottom: 16px; font-weight: 700; font-size: 16px;">The Five Sutras (Principles)</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; background-color: var(--bg-color); padding: 8px 12px; border-radius: 6px;">
+                    <span style="font-weight: 700; color: var(--primary-color);">SAMPARK</span>
+                    <span style="color: var(--text-muted); font-size: 13px;">Contact / Connection</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; background-color: var(--bg-color); padding: 8px 12px; border-radius: 6px;">
+                    <span style="font-weight: 700; color: var(--primary-color);">SAHYOG</span>
+                    <span style="color: var(--text-muted); font-size: 13px;">Cooperation / Collaboration</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; background-color: var(--bg-color); padding: 8px 12px; border-radius: 6px;">
+                    <span style="font-weight: 700; color: var(--primary-color);">SANSKAR</span>
+                    <span style="color: var(--text-muted); font-size: 13px;">Moral & Cultural Values</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; background-color: var(--bg-color); padding: 8px 12px; border-radius: 6px;">
+                    <span style="font-weight: 700; color: var(--primary-color);">SERVICE</span>
+                    <span style="color: var(--text-muted); font-size: 13px;">Social & Civic Duty</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; background-color: var(--bg-color); padding: 8px 12px; border-radius: 6px;">
+                    <span style="font-weight: 700; color: var(--primary-color);">SAMARPAN</span>
+                    <span style="color: var(--text-muted); font-size: 13px;">Commitment / Dedication</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid var(--success-color);">
+            <h3 style="color: var(--primary-color); margin-bottom: 16px; font-weight: 700; font-size: 16px;">Permanent Projects</h3>
+            <ul style="padding-left: 20px; font-size: 14px; color: var(--text-muted); line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <li>Ambulance Services</li>
+                <li>Mobile Dispensaries</li>
+                <li>Generic Medicine Hubs</li>
+                <li>Vocational Centers</li>
+                <li>Libraries & Path Labs</li>
+                <li>Vaccination Programs</li>
+                <li>Blood Donation Camps</li>
+                <li>Abhyasikas (Study Halls)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bharat Ko Jano Program -->
+    <div class="card">
+        <h2 style="color: var(--primary-color); margin-bottom: 16px;">About "Bharat Ko Jano" Quiz</h2>
+        <p style="font-size: 14.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;">
+            **"Bharat Ko Jano"** is a prominent nationwide quiz and cultural awareness program organized by the Bharat Vikas Parishad. It is designed to inspire and deepen citizens' and students' appreciation of India's rich heritage, history, geographical vastness, scientific accomplishments, and democratic achievements.
+        </p>
+
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--primary-color); margin-bottom: 10px;">Age Categories</h3>
+        <div class="grid-2" style="margin-bottom: 24px; gap: 16px;">
+            <div style="background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px;">
+                <strong style="color: var(--accent-color);">Junior Group</strong>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">Students of Classes 6 to 8</p>
+            </div>
+            <div style="background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px;">
+                <strong style="color: var(--accent-color);">Senior Group</strong>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">Students of Classes 9 to 12</p>
+            </div>
+        </div>
+
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--primary-color); margin-bottom: 12px;">Core Quiz Syllabus</h3>
+        <ul style="padding-left: 20px; font-size: 14px; color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 6px;">
+            <li><strong>Indian Heritage & Culture:</strong> Ancient scriptures, traditions, religions, fine arts, architecture, and languages.</li>
+            <li><strong>History & Geography:</strong> Sacred landscapes, historical struggles, freedom movement, and natural topography.</li>
+            <li><strong>Constitutional & Democratic Values:</strong> Parliamentary systems, fundamental rights, duties, and statecraft.</li>
+            <li><strong>Current Affairs & Achievements:</strong> India's recent developments in science, defense, infrastructure, space research, and global leadership.</li>
+        </ul>
+    </div>
+
+    <!-- Developers Credit -->
+    <div style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-muted);">
+        <span>Developed with pride for Bharat Vikas Parishad by <strong>Shravan</strong>.</span>
+    </div>
+</div>
+{% endblock %}

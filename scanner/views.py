@@ -17,15 +17,35 @@ from participants.models import Participant
 
 class OMRUploadView(LoginRequiredMixin, View):
     def get(self, request):
+        # 1. Enforce evaluator name in session
+        evaluator_name = request.session.get('evaluator_name')
+        if not evaluator_name:
+            return render(request, 'scanner/enter_evaluator.html', {'next_url': request.path})
+            
+        # 2. Redirect to pending unaccepted scan confirmation page
+        pending_sub = OMRSubmission.objects.filter(
+            operator=request.user, 
+            status='EVALUATED', 
+            is_accepted=False
+        ).first()
+        if pending_sub:
+            messages.error(request, "Error: Current scan was not saved. Please click 'Accept Result' to save it, or 'Rescan' to discard.")
+            return redirect('scanner:confirm_result', pk=pending_sub.pk)
+            
         form = OMRUploadForm()
         return render(request, 'scanner/upload.html', {'form': form})
 
     def post(self, request):
+        evaluator_name = request.session.get('evaluator_name')
+        if not evaluator_name:
+            return render(request, 'scanner/enter_evaluator.html', {'next_url': request.path})
+            
         form = OMRUploadForm(request.POST, request.FILES)
         if form.is_valid():
             # Save the submission
             submission = form.save(commit=False)
             submission.operator = request.user
+            submission.evaluator_name = evaluator_name
             submission.status = 'PENDING'
             submission.save()
             
@@ -34,8 +54,8 @@ class OMRUploadView(LoginRequiredMixin, View):
             
             submission.refresh_from_db()
             if success:
-                messages.success(request, f"OMR Sheet for {submission.participant.roll_number} evaluated successfully!")
-                return redirect('results:detail', pk=submission.result.pk)
+                # Redirect to confirmation page instead of results page
+                return redirect('scanner:confirm_result', pk=submission.pk)
             else:
                 if submission.status == 'ERROR' and submission.error_message and submission.error_message.startswith("DUPLICATE_SCAN"):
                     return redirect('scanner:duplicate_warning', pk=submission.pk)
@@ -281,3 +301,67 @@ class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
         response = super().form_valid(form)
         messages.success(self.request, f"OMR submission and result for '{participant_name}' have been reset.")
         return response
+
+
+class SetEvaluatorView(LoginRequiredMixin, View):
+    def post(self, request):
+        evaluator_name = request.POST.get('evaluator_name', '').strip()
+        next_url = request.POST.get('next', '').strip()
+        if evaluator_name:
+            request.session['evaluator_name'] = evaluator_name
+            messages.success(request, f"Session started for evaluator: {evaluator_name}")
+        else:
+            messages.error(request, "Evaluator name cannot be blank.")
+            
+        if next_url:
+            return redirect(next_url)
+        return redirect('dashboard:home')
+
+
+class OMRConfirmResultView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        if not request.session.get('evaluator_name'):
+            return render(request, 'scanner/enter_evaluator.html', {'next_url': request.path})
+            
+        submission = get_object_or_404(OMRSubmission, pk=pk)
+        if submission.is_accepted:
+            messages.info(request, "This scan has already been accepted.")
+            return redirect('scanner:upload')
+            
+        result = getattr(submission, 'result', None)
+        if not result:
+            messages.error(request, "No evaluated results found for this scan.")
+            return redirect('scanner:upload')
+            
+        return render(request, 'scanner/confirm_result.html', {
+            'submission': submission,
+            'result': result,
+            'participant': submission.participant,
+        })
+
+
+class OMRAcceptResultView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        submission = get_object_or_404(OMRSubmission, pk=pk)
+        submission.is_accepted = True
+        submission.save()
+        messages.success(request, f"Result for roll number {submission.participant.roll_number} accepted and saved successfully!")
+        return redirect('scanner:upload')
+
+
+class OMRRescanDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        submission = get_object_or_404(OMRSubmission, pk=pk)
+        roll_number = submission.participant.roll_number if submission.participant else "Unknown"
+        
+        # Delete image from disk if it exists
+        if submission.image and os.path.exists(submission.image.path):
+            try:
+                os.remove(submission.image.path)
+            except OSError:
+                pass
+                
+        # Clean up database record (CASCADE deletes the result)
+        submission.delete()
+        messages.info(request, f"Scan for roll number {roll_number} discarded. Ready for rescan.")
+        return redirect('scanner:upload')

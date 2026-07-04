@@ -5,6 +5,19 @@
 {% block page_title %}Dashboard Overview{% endblock %}
 
 {% block content %}
+<!-- BVP Welcome Banner -->
+<div class="card" style="display: flex; align-items: center; gap: 24px; border-left: 4px solid var(--warning-color); padding: 20px; margin-bottom: 24px; background-color: var(--primary-color); color: white;">
+    <div style="background-color: white; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+        <img src="/static/images/bvp_logo.jpg" alt="BVP Logo" style="height: 64px; width: auto; object-fit: contain;">
+    </div>
+    <div>
+        <h2 style="color: white; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">BHARAT VIKAS PARISHAD</h2>
+        <p style="margin: 6px 0 0 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.85); line-height: 1.4;">
+            "Bharat Ko Jano" Nationwide Quiz Evaluation Platform (BKJ-QMS)
+        </p>
+    </div>
+</div>
+
 <!-- Answer Key Configuration Warning -->
 {% if not keys_ready %}
     <div class="alert alert-warning" style="border-left: 4px solid var(--warning-color); margin-bottom: 24px;">

@@ -14,7 +14,7 @@ class ResultListView(LoginRequiredMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        queryset = Result.objects.select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number')
+        queryset = Result.objects.filter(submission__is_accepted=True).select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number')
         
         # Search
         q = self.request.GET.get('q', '').strip()
@@ -41,7 +41,7 @@ class ResultListView(LoginRequiredMixin, ListView):
         context['schools'] = School.objects.all().order_by('name')
         
         # Add ranks dynamically to the paginated list for display
-        all_results = list(Result.objects.select_related('participant').order_by('-score'))
+        all_results = list(Result.objects.filter(submission__is_accepted=True).select_related('participant').order_by('-score'))
         calculate_dense_ranks(all_results)
         # Map result ID to its rank
         rank_map = {r.pk: r.rank for r in all_results}
@@ -67,6 +67,7 @@ class ResultDetailView(LoginRequiredMixin, DetailView):
         
         # Calculate rank within their group
         group_results = list(Result.objects.filter(
+            submission__is_accepted=True,
             participant__group=result.participant.group
         ).select_related('participant').order_by('-score'))
         
@@ -85,18 +86,22 @@ class RankingsView(LoginRequiredMixin, View):
     def get(self, request):
         # 1. Junior Rankings
         junior_results = list(Result.objects.filter(
+            submission__is_accepted=True,
             participant__group='JUNIOR'
         ).select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
         calculate_dense_ranks(junior_results)
         
         # 2. Senior Rankings
         senior_results = list(Result.objects.filter(
+            submission__is_accepted=True,
             participant__group='SENIOR'
         ).select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
         calculate_dense_ranks(senior_results)
         
         # 3. Overall Rankings
-        overall_results = list(Result.objects.select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
+        overall_results = list(Result.objects.filter(
+            submission__is_accepted=True
+        ).select_related('participant', 'participant__school').order_by('-score', 'participant__roll_number'))
         calculate_dense_ranks(overall_results)
         
         # 4. School-wise Rankings
@@ -111,6 +116,7 @@ class RankingsView(LoginRequiredMixin, View):
             selected_school = get_object_or_404(School, pk=selected_school_id)
             # Rank Juniors within this school
             school_junior = list(Result.objects.filter(
+                submission__is_accepted=True,
                 participant__school=selected_school,
                 participant__group='JUNIOR'
             ).select_related('participant').order_by('-score', 'participant__roll_number'))
@@ -118,6 +124,7 @@ class RankingsView(LoginRequiredMixin, View):
             
             # Rank Seniors within this school
             school_senior = list(Result.objects.filter(
+                submission__is_accepted=True,
                 participant__school=selected_school,
                 participant__group='SENIOR'
             ).select_related('participant').order_by('-score', 'participant__roll_number'))
@@ -126,12 +133,14 @@ class RankingsView(LoginRequiredMixin, View):
             # Default to first school
             selected_school = schools[0]
             school_junior = list(Result.objects.filter(
+                submission__is_accepted=True,
                 participant__school=selected_school,
                 participant__group='JUNIOR'
             ).select_related('participant').order_by('-score', 'participant__roll_number'))
             school_junior_ranked = calculate_dense_ranks(school_junior)
             
             school_senior = list(Result.objects.filter(
+                submission__is_accepted=True,
                 participant__school=selected_school,
                 participant__group='SENIOR'
             ).select_related('participant').order_by('-score', 'participant__roll_number'))

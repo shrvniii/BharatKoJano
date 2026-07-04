@@ -80,6 +80,13 @@
                     </a>
                 </li>
                 
+                <li class="menu-item {% if request.resolver_match.url_name == 'about' %}active{% endif %}">
+                    <a href="{% url 'dashboard:about' %}" class="menu-link">
+                        <i class="bi bi-info-circle"></i>
+                        <span>About</span>
+                    </a>
+                </li>
+                
                 <li class="menu-item {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
                     <a href="{% url 'dashboard:settings' %}" class="menu-link">
                         <i class="bi bi-gear"></i>
@@ -122,28 +129,7 @@
             
             <!-- Content Body -->
             <div class="content-body">
-                <!-- Django Messages Alerts -->
-                {% if messages %}
-                    <div class="messages-container">
-                        {% for message in messages %}
-                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
-                                {% if message.tags == 'success' %}
-                                    <i class="bi bi-check-circle-fill"></i>
-                                {% elif message.tags == 'error' %}
-                                    <i class="bi bi-exclamation-triangle-fill"></i>
-                                {% elif message.tags == 'warning' %}
-                                    <i class="bi bi-exclamation-circle-fill"></i>
-                                {% else %}
-                                    <i class="bi bi-info-circle-fill"></i>
-                                {% endif %}
-                                <span>{{ message }}</span>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                
-                {% block content %}
-                {% endblock %}
+                {% block content %}{% endblock %}
             </div>
         </main>
     </div>
@@ -170,7 +156,75 @@
                 });
             }
         });
+
+        function showAlertModal(message, type) {
+            const modal = document.getElementById('alert-modal');
+            const iconContainer = document.getElementById('modal-icon-container');
+            const icon = document.getElementById('modal-icon');
+            const title = document.getElementById('modal-title');
+            const msgEl = document.getElementById('modal-message');
+            
+            msgEl.innerHTML = message;
+            
+            if (type === 'error' || type === 'danger') {
+                title.textContent = 'Evaluation Error';
+                icon.className = 'bi bi-exclamation-triangle-fill';
+                iconContainer.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+                iconContainer.style.color = '#EF4444';
+            } else if (type === 'warning') {
+                title.textContent = 'Attention';
+                icon.className = 'bi bi-exclamation-circle-fill';
+                iconContainer.style.backgroundColor = 'rgba(245, 127, 23, 0.15)';
+                iconContainer.style.color = '#F57F17';
+            } else if (type === 'success') {
+                title.textContent = 'Success';
+                icon.className = 'bi bi-check-circle-fill';
+                iconContainer.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+                iconContainer.style.color = '#10B981';
+            } else {
+                title.textContent = 'Notification';
+                icon.className = 'bi bi-info-circle-fill';
+                iconContainer.style.backgroundColor = 'rgba(37, 99, 235, 0.15)';
+                iconContainer.style.color = '#2563EB';
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
     </script>
+    
+    <!-- Alert Modal Container -->
+    <div id="alert-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(13, 43, 78, 0.55); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; color: #ffffff;">
+        <div style="background-color: var(--primary-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; max-width: 450px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 18px; color: white;">
+            <div style="display: flex; gap: 14px; align-items: flex-start;">
+                <div id="modal-icon-container" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
+                    <i id="modal-icon" class="bi"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" style="margin: 0; font-size: 18px; font-weight: 700; color: white;">Notification</h3>
+                    <p id="modal-message" style="margin: 6px 0 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.85); line-height: 1.5;"></p>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+                <button type="button" onclick="closeAlertModal()" class="btn btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; padding: 8px 20px; font-weight: 600; border-radius: 30px; cursor: pointer;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    {% if messages %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                {% for message in messages %}
+                    showAlertModal("{{ message|escapejs }}", "{{ message.tags }}");
+                {% endfor %}
+            });
+        </script>
+    {% endif %}
     
     {% block extra_js %}{% endblock %}
 </body>

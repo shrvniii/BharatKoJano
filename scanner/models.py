@@ -18,6 +18,8 @@ class OMRSubmission(models.Model):
     detected_answers = models.JSONField(blank=True, null=True)  # List of 50 detected values (0=unanswered, 1-4=A-D, 5=multi-marked)
     answer_key = models.ForeignKey(AnswerKey, on_delete=models.PROTECT, related_name='submissions', blank=True, null=True)
     operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='submissions')
+    evaluator_name = models.CharField(max_length=100, blank=True, null=True)
+    is_accepted = models.BooleanField(default=False)
 
     def __str__(self):
         roll_num = self.participant.roll_number if self.participant else "No Participant"

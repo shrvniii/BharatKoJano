@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Scan Result{% endblock %}
+
+{% block page_title %}Verify Scan Details{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; display: flex; flex-direction: column; gap: 24px;">
+    <!-- Confirmation Card -->
+    <div class="card" style="border-top: 4px solid var(--accent-color); padding: 32px;">
+        <h2 style="color: var(--primary-color); margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+            <i class="bi bi-shield-fill-check" style="color: var(--success-color);"></i>
+            <span>Confirm Scanned Details</span>
+        </h2>
+
+        <!-- Student Info Grid -->
+        <div style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <span style="font-weight: 600; color: var(--text-muted);">Roll Number:</span>
+                <span style="font-weight: 700; color: var(--primary-color); font-size: 16px;">{{ participant.roll_number }}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <span style="font-weight: 600; color: var(--text-muted);">School Code:</span>
+                <span style="font-weight: 700; color: var(--primary-color);">{{ participant.school.code }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <span style="font-weight: 600; color: var(--text-muted);">School Name:</span>
+                <span style="font-weight: 700; color: var(--primary-color);">{{ participant.school.name }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <span style="font-weight: 600; color: var(--text-muted);">Category / Group:</span>
+                <span style="font-weight: 700; color: var(--primary-color);">{{ participant.get_group_display }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <span style="font-weight: 600; color: var(--text-muted);">Question Set:</span>
+                <span style="font-weight: 700; color: var(--primary-color);">{{ participant.get_paper_set_display }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; background-color: rgba(37, 99, 235, 0.05); padding: 12px; border-radius: 8px;">
+                <span style="font-weight: 700; color: var(--accent-color); font-size: 15px;">Evaluated Score:</span>
+                <span style="font-weight: 800; color: var(--accent-color); font-size: 22px;">{{ result.score }} <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+            </div>
+        </div>
+
+        <!-- Three Action Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <!-- Accept POST Form -->
+                <form method="post" action="{% url 'scanner:accept_result' submission.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success" style="width: 100%; height: 48px; font-size: 15px; font-weight: 600; justify-content: center; gap: 8px; border: none; cursor: pointer;">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Accept Result</span>
+                    </button>
+                </form>
+
+                <!-- Rescan POST Form -->
+                <form method="post" action="{% url 'scanner:rescan_delete' submission.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width: 100%; height: 48px; font-size: 15px; font-weight: 600; justify-content: center; gap: 8px; border: none; cursor: pointer;">
+                        <i class="bi bi-trash"></i>
+                        <span>Rescan</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Proceed to Next Scan Link/Button -->
+            <a href="{% url 'scanner:upload' %}" class="btn btn-secondary" style="height: 48px; font-size: 15px; font-weight: 600; justify-content: center; gap: 8px;">
+                <i class="bi bi-arrow-right-circle"></i>
+                <span>Proceed to Next Scan</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

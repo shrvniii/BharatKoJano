@@ -14,6 +14,10 @@ from answer_keys.models import AnswerKey
 
 class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
+        evaluator_name = request.session.get('evaluator_name')
+        if not evaluator_name:
+            return render(request, 'scanner/enter_evaluator.html', {'next_url': request.path})
+            
         total_schools = School.objects.count()
         total_participants = Participant.objects.count()
         
@@ -136,3 +140,7 @@ class ResetDataView(LoginRequiredMixin, View):
             messages.error(request, f"Error resetting database: {str(e)}")
             
         return redirect('dashboard:home')
+
+class AboutView(LoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, 'dashboard/about.html')
