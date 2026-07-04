@@ -240,13 +240,15 @@ def detect_roll_number(thresh):
             
             bubble_stats.append(fill_ratio)
             
-        # Find the bubble with the highest fill ratio in this column
-        max_ratio = max(bubble_stats)
-        max_idx = bubble_stats.index(max_ratio)
+        # Find how many bubbles in this column exceed the threshold
+        filled_ratios = [ratio for ratio in bubble_stats if ratio > fill_threshold]
         
-        if max_ratio > fill_threshold:
+        if len(filled_ratios) == 1:
+            # Exactly one bubble is filled
+            max_idx = bubble_stats.index(max(bubble_stats))
             roll_digits.append(str(max_idx))
         else:
+            # Column is either blank (0) or double-bubbled (>1)
             roll_digits.append("?")
             
     return "".join(roll_digits)
