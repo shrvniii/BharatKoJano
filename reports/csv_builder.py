@@ -34,10 +34,14 @@ def build_rankings_csv(submissions, file_object):
         
         # School details
         school_code = p.school.code if (p and p.school) else '—'
+        if school_code != '—':
+            school_code = f'="{school_code}"'
         school_name = p.school.name if (p and p.school) else '—'
         
         # Participant details
         roll_number = p.roll_number if p else '—'
+        if roll_number != '—':
+            roll_number = f'="{roll_number}"'
         student_name = p.student_name if (p and p.student_name) else '—'
         category = p.get_group_display() if p else '—'
         paper_set = p.get_paper_set_display() if p else '—'

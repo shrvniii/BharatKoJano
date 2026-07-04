@@ -106,7 +106,7 @@ class CSVReportDownloadView(LoginRequiredMixin, View):
         submissions = sorted(submissions, key=sort_key)
         
         response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = 'attachment; filename="bkj_oms_standings.csv"'
+        response['Content-Disposition'] = 'attachment; filename="bkj_qms_standings.csv"'
         
         # Write Excel UTF-8 BOM
         response.write('\ufeff'.encode('utf-8'))

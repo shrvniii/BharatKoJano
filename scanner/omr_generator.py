@@ -22,7 +22,7 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     c.drawCentredString(297, 815, "BHARAT KO JANO")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor("#1E3A8A"))
-    c.drawCentredString(297, 800, "Online OMR Management System (BKJ-OMS)")
+    c.drawCentredString(297, 800, "Online Quiz Management System (BKJ-QMS)")
 
     # 1. Header Information Table
     c.setStrokeColor(HexColor("#000000"))
@@ -236,7 +236,7 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     # Footer
     c.setFont("Helvetica-Oblique", 8)
     c.setFillColor(HexColor("#94A3B8"))
-    c.drawCentredString(297, 25, "BKJ-OMS System • Designed for Bharat Ko Jano OMR Evaluation")
+    c.drawCentredString(297, 25, "BKJ-QMS System • Designed for Bharat Ko Jano Quiz Evaluation")
 
 class MockParticipant:
     def __init__(self, roll_number, school, group):

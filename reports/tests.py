@@ -36,7 +36,8 @@ class CSVDownloadTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
         content = response.content
-        self.assertIn(b"01001", content)
+        self.assertIn(b'"=""01001"""', content)
+        self.assertIn(b'"=""01"""', content)
         self.assertIn(b"Test School", content)
 
 
