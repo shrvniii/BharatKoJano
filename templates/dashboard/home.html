@@ -34,7 +34,7 @@
 {% endif %}
 
 <!-- Stats Grid -->
-<div class="grid-3" style="margin-bottom: 24px;">
+<div class="grid-2" style="margin-bottom: 24px;">
     <!-- Registered Schools -->
     <div class="card stat-card primary">
         <div class="stat-info">
@@ -42,18 +42,6 @@
             <span class="stat-value">{{ total_schools }}</span>
         </div>
         <i class="bi bi-building stat-icon"></i>
-    </div>
-    
-    <!-- Total Generated Sheets -->
-    <div class="card stat-card primary">
-        <div class="stat-info">
-            <span class="stat-label">Total Generated Sheets</span>
-            <span class="stat-value">{{ total_generated_sheets }}</span>
-            <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                400 sheets per school
-            </span>
-        </div>
-        <i class="bi bi-file-earmark-pdf stat-icon"></i>
     </div>
     
     <!-- Evaluation Progress -->
@@ -66,52 +54,32 @@
     </div>
 </div>
 
-<div class="grid-4" style="margin-bottom: 24px;">
-    <!-- Remaining Sheets -->
-    <div class="card stat-card warning" style="padding: 16px;">
-        <div class="stat-info">
-            <span class="stat-label">Remaining Sheets</span>
-            <span class="stat-value" style="font-size: 24px;">{{ remaining_count }}</span>
-        </div>
-        <i class="bi bi-hourglass-split stat-icon" style="color: var(--warning-color);"></i>
-    </div>
-    
+<div class="grid-3" style="margin-bottom: 24px;">
     <!-- Average Score -->
-    <div class="card stat-card primary" style="padding: 16px;">
+    <div class="card stat-card primary">
         <div class="stat-info">
             <span class="stat-label">Average Score</span>
-            <span class="stat-value" style="font-size: 24px;">{{ avg_score }} <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+            <span class="stat-value">{{ avg_score|floatformat:1 }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
         </div>
         <i class="bi bi-calculator stat-icon"></i>
     </div>
     
     <!-- Highest Score -->
-    <div class="card stat-card success" style="padding: 16px;">
+    <div class="card stat-card success">
         <div class="stat-info">
             <span class="stat-label">Highest Score</span>
-            <span class="stat-value" style="font-size: 24px;">{{ high_score }} <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
+            <span class="stat-value">{{ high_score }} <span style="font-size: 16px; font-weight: 500; color: var(--text-muted);">/ 50</span></span>
         </div>
         <i class="bi bi-trophy stat-icon" style="color: var(--success-color);"></i>
     </div>
     
     <!-- Average Confidence -->
-    <div class="card stat-card success" style="border-left: 4px solid var(--accent-color); padding: 16px;">
+    <div class="card stat-card success" style="border-left: 4px solid var(--accent-color);">
         <div class="stat-info">
             <span class="stat-label">Avg Bubble Confidence</span>
-            <span class="stat-value" style="font-size: 24px;">{{ avg_confidence }}%</span>
+            <span class="stat-value">{{ avg_confidence|floatformat:1 }}%</span>
         </div>
         <i class="bi bi-bullseye stat-icon" style="color: var(--accent-color);"></i>
-    </div>
-</div>
-
-<!-- Progress Bar Card -->
-<div class="card" style="margin-bottom: 24px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <span style="font-weight: 600; font-size: 14px;">Overall Scan Completeness Progress</span>
-        <span style="font-weight: 700; color: var(--success-color);">{{ progress_pct }}%</span>
-    </div>
-    <div style="width: 100%; height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden;">
-        <div style="width: {{ progress_pct }}%; height: 100%; background-color: var(--success-color); border-radius: 5px; transition: width 0.5s ease-out;"></div>
     </div>
 </div>
 
