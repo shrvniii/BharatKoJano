@@ -37,7 +37,6 @@ def build_rankings_excel(submissions, file_object):
         'Wrong Answers',
         'Unanswered Questions',
         'Multi-marked Questions',
-        'Confidence Score',
         'Scan Status',
         'Scan Timestamp',
         'Operator',
@@ -71,7 +70,6 @@ def build_rankings_excel(submissions, file_object):
             unanswered = r.unanswered_count
             multi_marked = r.multi_marked_count
             wrong = 50 - r.score - r.unanswered_count - r.multi_marked_count
-            confidence = f"{r.confidence_score}%"
         else:
             marks_obtained = '—'
             percentage = '—'
@@ -79,7 +77,6 @@ def build_rankings_excel(submissions, file_object):
             wrong = '—'
             unanswered = '—'
             multi_marked = '—'
-            confidence = '—'
             
         status = s.get_status_display()
         timestamp = s.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')
@@ -99,7 +96,6 @@ def build_rankings_excel(submissions, file_object):
             wrong,
             unanswered,
             multi_marked,
-            confidence,
             status,
             timestamp,
             operator,
