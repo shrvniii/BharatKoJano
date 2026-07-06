@@ -31,31 +31,24 @@ def draw_omr_instructions(c, x, y):
     c.drawString(x, y - 12, "1. Use Blue/Black Ball Point")
     c.drawString(x, y - 20, "   pen only. NO GEL PENS.")
     
-    # 2. Mark A or B according to set
-    c.drawString(x, y - 32, "2. Mark A or B according to")
-    c.drawString(x, y - 40, "   your question set.")
-    
-    # 3. Do not mark anywhere other than ⭕
-    c.drawString(x, y - 52, "3. Do not mark anywhere other than")
-    circle_x = x + c.stringWidth("3. Do not mark anywhere other than", "Helvetica", 6.5) + 6
-    circle_y = y - 50
+    # 2. Do not mark anywhere other than ⭕
+    c.drawString(x, y - 32, "2. Do not mark anywhere other than")
+    circle_x = x + c.stringWidth("2. Do not mark anywhere other than", "Helvetica", 6.5) + 6
+    circle_y = y - 30
     circle_r = 2.5
     c.setStrokeColor(black)
     c.setLineWidth(0.8)
     c.circle(circle_x, circle_y, circle_r, fill=0, stroke=1)
     
-    # 4. Do not mark anything on the question paper
-    c.drawString(x, y - 66, "4. Do not mark anything")
-    c.drawString(x, y - 74, "   on the question paper.")
-    
-    # 5. Question papers are to be returned after the exam
-    c.drawString(x, y - 86, "5. Question papers are to")
-    c.drawString(x, y - 94, "   be returned after exam.")
+    # 3. Do not mark anything on the question paper & return it
+    c.drawString(x, y - 46, "3. Do not mark anything")
+    c.drawString(x, y - 54, "   on the question paper.")
+    c.drawString(x, y - 62, "   Return it after exam.")
     
     # Title for marking examples
     c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor("#0D2B4E"))
-    c.drawString(x, y - 105, "MARKING EXAMPLES")
+    c.drawString(x, y - 78, "MARKING EXAMPLES")
     
     c.setFont("Helvetica", 6.5)
     c.setFillColor(black)
@@ -63,51 +56,51 @@ def draw_omr_instructions(c, x, y):
     bubble_r = 3.5
     
     # A. Correct method
-    c.drawString(x, y - 121, "Correct:")
+    c.drawString(x, y - 94, "Correct:")
     c.setStrokeColor(black)
     c.setFillColor(black)
-    c.circle(x + 55, y - 119, bubble_r, fill=1, stroke=1)
+    c.circle(x + 55, y - 92, bubble_r, fill=1, stroke=1)
     
     # B. Crossed out (Rejected)
     c.setFillColor(black)
-    c.drawString(x, y - 137, "Crossed out:")
+    c.drawString(x, y - 114, "Crossed out:")
     c.setFillColor(white)
-    c.circle(x + 55, y - 135, bubble_r, fill=0, stroke=1)
+    c.circle(x + 55, y - 112, bubble_r, fill=0, stroke=1)
     c.setStrokeColor(black)
     c.setLineWidth(0.5)
-    c.line(x + 55 - 3.5, y - 135 - 3.5, x + 55 + 3.5, y - 135 + 3.5)
-    c.line(x + 55 - 3.5, y - 135 + 3.5, x + 55 + 3.5, y - 135 - 3.5)
+    c.line(x + 55 - 3.5, y - 112 - 3.5, x + 55 + 3.5, y - 112 + 3.5)
+    c.line(x + 55 - 3.5, y - 112 + 3.5, x + 55 + 3.5, y - 112 - 3.5)
     c.setFillColor(black)
-    c.drawString(x + 70, y - 137, "(Rejected)")
+    c.drawString(x + 70, y - 114, "(Rejected)")
     
     # C. Multi-marked (Rejected)
     c.setFillColor(black)
-    c.drawString(x, y - 153, "Multi-marked:")
+    c.drawString(x, y - 134, "Multi-marked:")
     c.setFillColor(black)
-    c.circle(x + 55, y - 151, bubble_r, fill=1, stroke=1)
-    c.circle(x + 65, y - 151, bubble_r, fill=1, stroke=1)
-    c.drawString(x + 75, y - 153, "(Rejected)")
+    c.circle(x + 55, y - 132, bubble_r, fill=1, stroke=1)
+    c.circle(x + 65, y - 132, bubble_r, fill=1, stroke=1)
+    c.drawString(x + 75, y - 134, "(Rejected)")
     
     # D. Partial Fill (Rejected)
     c.setFillColor(black)
-    c.drawString(x, y - 169, "Partial Fill:")
+    c.drawString(x, y - 154, "Partial Fill:")
     c.setFillColor(white)
-    c.circle(x + 55, y - 167, bubble_r, fill=0, stroke=1)
+    c.circle(x + 55, y - 152, bubble_r, fill=0, stroke=1)
     c.setFillColor(black)
-    c.circle(x + 55, y - 167, 1.5, fill=1, stroke=0)  # small dot inside
-    c.drawString(x + 70, y - 169, "(Rejected)")
+    c.circle(x + 55, y - 152, 1.5, fill=1, stroke=0)  # small dot inside
+    c.drawString(x + 70, y - 154, "(Rejected)")
  
     # E. Tick Mark (Rejected)
     c.setFillColor(black)
-    c.drawString(x, y - 185, "Tick Mark:")
+    c.drawString(x, y - 174, "Tick Mark:")
     c.setFillColor(white)
-    c.circle(x + 55, y - 183, bubble_r, fill=0, stroke=1)
+    c.circle(x + 55, y - 172, bubble_r, fill=0, stroke=1)
     c.setStrokeColor(black)
     c.setLineWidth(0.5)
-    c.line(x + 53, y - 183, x + 55, y - 185)
-    c.line(x + 55, y - 185, x + 58, y - 180)
+    c.line(x + 53, y - 172, x + 55, y - 174)
+    c.line(x + 55, y - 174, x + 58, y - 169)
     c.setFillColor(black)
-    c.drawString(x + 70, y - 185, "(Rejected)")
+    c.drawString(x + 70, y - 174, "(Rejected)")
 
 def draw_omr_sheet_on_canvas(c, participant=None):
     """
@@ -199,15 +192,21 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     # 1. Exam Set (Left empty for students to bubble manually)
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(HexColor("#0D2B4E"))
-    c.drawString(col0_x, 635, "Exam Set")
+    c.drawString(col0_x, 638, "Exam Set")
+    
+    c.setFont("Helvetica-Bold", 5.8)
+    c.setFillColor(HexColor("#DC2626"))  # Prominent red alert color
+    c.drawString(col0_x, 629, "Mark A or B according to")
+    c.drawString(col0_x, 622, "your question set.")
     
     c.setFont("Helvetica", 8)
-    c.drawString(col0_x, 622, "A")
-    c.drawString(col0_x + 22, 622, "B")
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawString(col0_x, 610, "A")
+    c.drawString(col0_x + 22, 610, "B")
     
     for idx in range(2):
         bx = col0_x + 3 + (idx * 22)
-        by = 608
+        by = 596
         c.setStrokeColor(HexColor("#000000"))
         c.setLineWidth(1)
         c.circle(bx, by, bubble_r, fill=0)
