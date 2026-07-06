@@ -31,13 +31,14 @@ def draw_omr_instructions(c, x, y):
     c.drawString(x, y - 12, "1. Use Blue/Black Ball Point")
     c.drawString(x, y - 20, "   pen only. NO GEL PENS.")
     
-    c.drawString(x, y - 32, "2. Dark pencils can work.")
-    
-    c.drawString(x, y - 44, "3. Shade bubbles completely")
-    c.drawString(x, y - 52, "   and darkly.")
-    
-    c.drawString(x, y - 64, "4. Do not make stray marks")
-    c.drawString(x, y - 72, "   on the sheet.")
+    # 2. Do not mark anywhere other than ⭕
+    c.drawString(x, y - 32, "2. Do not mark anywhere other than")
+    circle_x = x + c.stringWidth("2. Do not mark anywhere other than", "Helvetica", 6.5) + 6
+    circle_y = y - 30
+    circle_r = 2.5
+    c.setStrokeColor(black)
+    c.setLineWidth(0.8)
+    c.circle(circle_x, circle_y, circle_r, fill=0, stroke=1)
     
     # Title for marking examples
     c.setFont("Helvetica-Bold", 7)
@@ -101,6 +102,20 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     Draws the complete OMR sheet layout onto a ReportLab canvas.
     If a participant object is provided, pre-prints their details and pre-bubbles their Roll No and Group.
     """
+    # Load and draw official Bharat Ko Jano logo
+    import os
+    try:
+        from django.conf import settings
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'bvp_logo.jpg')
+    except Exception:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.abspath(os.path.join(current_dir, '..', 'static', 'images', 'bvp_logo.jpg'))
+
+    if os.path.exists(logo_path):
+        # Aspect ratio is 1024/911. Scale proportionally to height 38, width = 38 * (1024/911) = 42.7 -> 43.
+        # Align logo with left margin (x = 70) and center vertically in the top space (y = 796).
+        c.drawImage(logo_path, 70, 796, width=43, height=38)
+
     # 0. Title above the header box
     c.setFont("Helvetica-Bold", 16)
     c.setFillColor(HexColor("#0D2B4E"))
@@ -121,9 +136,14 @@ def draw_omr_sheet_on_canvas(c, participant=None):
     c.line(70, 765, 525, 765)
     
     # Header Labels
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(HexColor("#0D2B4E"))
+    c.drawString(80, 778, "STUDENT NAME :")
+    c.setFont("Helvetica-Bold", 6.5)
+    c.drawString(80, 769, "(Write in CAPITAL LETTERS)")
+    
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(HexColor("#0D2B4E"))
-    c.drawString(80, 772, "STUDENT NAME (Write in Capital Letters) :")
     c.drawString(80, 747, "SCHOOL NAME :")
     c.drawString(80, 722, "DATE OF EXAM : _______________________")
     c.drawString(340, 722, "CATEGORY :")
