@@ -40,6 +40,14 @@ def draw_omr_instructions(c, x, y):
     c.setLineWidth(0.8)
     c.circle(circle_x, circle_y, circle_r, fill=0, stroke=1)
     
+    # 3. Do not mark anything on the question paper
+    c.drawString(x, y - 46, "3. Do not mark anything")
+    c.drawString(x, y - 54, "   on the question paper.")
+    
+    # 4. Question papers are to be returned after the exam
+    c.drawString(x, y - 66, "4. Question papers are to")
+    c.drawString(x, y - 74, "   be returned after exam.")
+    
     # Title for marking examples
     c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor("#0D2B4E"))
