@@ -26,12 +26,21 @@ class ReportListView(LoginRequiredMixin, View):
             omr_submission__status='EVALUATED'
         ).order_by('roll_number')
         
-        school_codes = [f"{i:02d}" for i in range(1, 51)]
+        # Build school code list with names if they exist in the DB
+        school_dict = {s.code: s.name for s in schools if s.code}
+        school_packs = []
+        for i in range(1, 51):
+            code = f"{i:02d}"
+            name = school_dict.get(code, "Unassigned")
+            school_packs.append({
+                'code': code,
+                'name': name
+            })
         
         context = {
             'schools': schools,
             'participants': participants_with_results,
-            'school_codes': school_codes,
+            'school_packs': school_packs,
         }
         return render(request, 'reports/report_list.html', context)
 

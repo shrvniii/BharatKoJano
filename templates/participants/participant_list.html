@@ -21,7 +21,7 @@
                 <select name="school" class="form-control" style="height: 38px;">
                     <option value="">All Schools</option>
                     {% for school in schools %}
-                        <option value="{{ school.pk }}" {% if request.GET.school == school.pk|stringformat:"i" %}selected{% endif %}>{{ school.name }}</option>
+                        <option value="{{ school.pk }}" {% if request.GET.school == school.pk|stringformat:"i" %}selected{% endif %}>{{ school.code }} - {{ school.name }}</option>
                     {% endfor %}
                 </select>
             </div>

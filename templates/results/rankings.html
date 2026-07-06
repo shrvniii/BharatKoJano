@@ -170,7 +170,7 @@
             <label for="school-select" style="font-weight: 600; font-size: 14px; white-space: nowrap;">Select School:</label>
             <select id="school-select" class="form-control" onchange="location.href='?tab=school&school=' + this.value" style="margin-bottom: 0; height: 38px;">
                 {% for school in schools %}
-                    <option value="{{ school.pk }}" {% if selected_school.pk == school.pk %}selected{% endif %}>{{ school.name }}</option>
+                    <option value="{{ school.pk }}" {% if selected_school.pk == school.pk %}selected{% endif %}>{{ school.code }} - {{ school.name }}</option>
                 {% empty %}
                     <option value="">No schools registered</option>
                 {% endfor %}

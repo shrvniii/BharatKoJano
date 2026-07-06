@@ -196,7 +196,8 @@
                         <label for="id_password" class="form-label">Password</label>
                         <div class="input-wrapper">
                             <i class="bi bi-lock input-icon"></i>
-                            <input type="password" name="password" required id="id_password" class="form-control" placeholder="Enter password">
+                            <input type="password" name="password" required id="id_password" class="form-control" placeholder="Enter password" style="padding-right: 40px;">
+                            <i class="bi bi-eye toggle-password" id="toggle-password-btn" style="position: absolute; right: 14px; cursor: pointer; color: var(--text-muted); font-size: 16px; z-index: 10; user-select: none;"></i>
                         </div>
                     </div>
                     
@@ -208,5 +209,27 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        const passwordInput = document.getElementById('id_password');
+        const togglePasswordBtn = document.getElementById('toggle-password-btn');
+        
+        if (passwordInput && togglePasswordBtn) {
+            togglePasswordBtn.addEventListener('click', function() {
+                // Toggle the type attribute
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle the icon class
+                if (type === 'password') {
+                    togglePasswordBtn.classList.remove('bi-eye-slash');
+                    togglePasswordBtn.classList.add('bi-eye');
+                } else {
+                    togglePasswordBtn.classList.remove('bi-eye');
+                    togglePasswordBtn.classList.add('bi-eye-slash');
+                }
+            });
+        }
+    </script>
 </body>
 </html>
