@@ -104,3 +104,7 @@ LOGOUT_REDIRECT_URL = 'accounts:login'
 LOGIN_URL = 'accounts:login'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Answer Key Password Protection Settings
+ANSWER_KEY_PASSWORD = config('ANSWER_KEY_PASSWORD', default='bkj_qms_2026')
+

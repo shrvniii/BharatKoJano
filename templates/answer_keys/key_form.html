@@ -22,16 +22,28 @@
     </div>
     
     {% if is_locked %}
-        <div class="alert alert-danger" style="margin-bottom: 24px;">
-            <i class="bi bi-lock-fill" style="font-size: 20px;"></i>
-            <div>
-                <strong>This answer key is LOCKED!</strong>
-                <p style="margin-top: 4px; font-size: 13px;">
-                    OMR sheets have already been evaluated using this key. You can view the answers, but you cannot make any changes. 
-                    To unlock this key, you must delete all OMR submissions linked to the <strong>{{ group_name }} {{ set_name }}</strong> category.
-                </p>
+        {% if session_unlocked %}
+            <div class="alert alert-success" style="margin-bottom: 24px; display: flex; align-items: center; gap: 12px; background-color: #DEF7EC; border-color: #BCF0DA; color: #03543F; padding: 16px; border-radius: 8px;">
+                <i class="bi bi-unlock-fill" style="font-size: 24px; color: var(--success-color);"></i>
+                <div>
+                    <strong style="font-size: 15px; display: block;">🔓 Editing Enabled</strong>
+                    <span style="font-size: 13px; color: #03543F;">You have successfully unlocked the editing session. Save your changes to lock it again.</span>
+                </div>
             </div>
-        </div>
+        {% else %}
+            <div class="alert alert-danger" style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; background-color: #FDE8E8; border-color: #F8B4B4; color: #9B1C1C; padding: 16px; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="bi bi-lock-fill" style="font-size: 24px; color: var(--danger-color);"></i>
+                    <div>
+                        <strong style="font-size: 15px; display: block;">🔒 Answer Keys Locked</strong>
+                        <span style="font-size: 13px; color: #7F1D1D;">Editing this answer key is restricted. Enter the administrator password to make changes.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-unlock-trigger" style="background-color: var(--accent-color); border: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-unlock-fill"></i> Unlock Editing
+                </button>
+            </div>
+        {% endif %}
     {% endif %}
     
     <form method="post">
@@ -81,18 +93,140 @@
                 <span>Back to Status</span>
             </a>
             
-            {% if not is_locked %}
+            {% if not is_locked or session_unlocked %}
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save"></i>
                     <span>Save Answer Key</span>
                 </button>
             {% else %}
-                <button type="button" class="btn btn-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                <button type="button" class="btn btn-secondary btn-unlock-trigger" style="display: inline-flex; align-items: center; gap: 6px;">
                     <i class="bi bi-lock-fill"></i>
-                    <span>Locked</span>
+                    <span>Locked (Unlock to Edit)</span>
                 </button>
             {% endif %}
         </div>
     </form>
 </div>
+
+<!-- Unlock Password Modal -->
+<div id="unlock-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(13, 43, 78, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 16px; color: var(--text-primary);">
+        <div style="text-align: center;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: rgba(183, 28, 28, 0.1); color: var(--danger-color); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px;">
+                <i class="bi bi-lock-fill"></i>
+            </div>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--primary-color);">Answer Keys are Locked</h3>
+            <p style="margin: 6px 0 0 0; font-size: 14px; color: var(--text-muted);">Please enter the administrator password to continue.</p>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label for="admin-password" style="font-weight: 600; font-size: 13px;">Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="admin-password" placeholder="••••••••" style="padding: 10px 40px 10px 12px; width: 100%; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; background-color: var(--card-bg); color: var(--text-primary);">
+                <button type="button" id="toggle-password" style="position: absolute; right: 12px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; display: flex; align-items: center; height: 100%;">
+                    <i class="bi bi-eye-slash" id="toggle-password-icon"></i>
+                </button>
+            </div>
+            <div id="modal-error-message" style="display: none; color: var(--danger-color); font-size: 13px; font-weight: 500; margin-top: 4px;">
+                Incorrect password. Please try again.
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 8px;">
+            <button type="button" id="btn-modal-cancel" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px; border-radius: 6px;">Cancel</button>
+            <button type="button" id="btn-modal-unlock" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px; border-radius: 6px; background-color: var(--accent-color); border: none;">Unlock</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const unlockModal = document.getElementById('unlock-modal');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const togglePasswordBtn = document.getElementById('toggle-password');
+        const togglePasswordIcon = document.getElementById('toggle-password-icon');
+        const modalErrorMessage = document.getElementById('modal-error-message');
+        const btnModalCancel = document.getElementById('btn-modal-cancel');
+        const btnModalUnlock = document.getElementById('btn-modal-unlock');
+        
+        // Open modal when any element with class 'btn-unlock-trigger' is clicked
+        const triggers = document.querySelectorAll('.btn-unlock-trigger');
+        triggers.forEach(function(trigger) {
+            trigger.addEventListener('click', function() {
+                unlockModal.style.display = 'flex';
+                adminPasswordInput.value = '';
+                modalErrorMessage.style.display = 'none';
+                adminPasswordInput.focus();
+            });
+        });
+        
+        // Close modal
+        btnModalCancel.addEventListener('click', function() {
+            unlockModal.style.display = 'none';
+        });
+        
+        // Close modal when clicking outside content
+        unlockModal.addEventListener('click', function(e) {
+            if (e.target === unlockModal) {
+                unlockModal.style.display = 'none';
+            }
+        });
+        
+        // Toggle password show/hide
+        togglePasswordBtn.addEventListener('click', function() {
+            if (adminPasswordInput.type === 'password') {
+                adminPasswordInput.type = 'text';
+                togglePasswordIcon.classList.remove('bi-eye-slash');
+                togglePasswordIcon.classList.add('bi-eye');
+            } else {
+                adminPasswordInput.type = 'password';
+                togglePasswordIcon.classList.remove('bi-eye');
+                togglePasswordIcon.classList.add('bi-eye-slash');
+            }
+        });
+        
+        // Handle unlock request
+        function handleUnlock() {
+            const password = adminPasswordInput.value;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            modalErrorMessage.style.display = 'none';
+            
+            fetch("{% url 'answer_keys:unlock' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({ password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to enable editing
+                    window.location.reload();
+                } else {
+                    modalErrorMessage.innerHTML = "Incorrect password.<br>Please try again.";
+                    modalErrorMessage.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error("Error unlocking:", error);
+                modalErrorMessage.textContent = "An error occurred. Please try again.";
+                modalErrorMessage.style.display = 'block';
+            });
+        }
+        
+        btnModalUnlock.addEventListener('click', handleUnlock);
+        
+        // Submit on enter key
+        adminPasswordInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleUnlock();
+            }
+        });
+    });
+</script>
 {% endblock %}
+

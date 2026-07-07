@@ -2,9 +2,26 @@
 
 {% block title %}Answer Keys{% endblock %}
 
-{% block page_title %}Answer Key Configuration{% endblock %}
+{% block page_title %}
+    Answer Key Configuration
+    {% if module_locked %}
+        <span style="font-size: 13px; font-weight: 600; margin-left: 12px; padding: 4px 10px; background-color: #FDE8E8; color: #9B1C1C; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #F8B4B4;">
+            <i class="bi bi-lock-fill"></i> Answer Keys Locked
+        </span>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
+{% if module_locked %}
+    <div class="alert alert-danger" style="margin-bottom: 24px; display: flex; align-items: center; gap: 12px; background-color: #FDE8E8; border-color: #F8B4B4; color: #9B1C1C; padding: 16px; border-radius: 8px;">
+        <i class="bi bi-lock-fill" style="font-size: 24px;"></i>
+        <div>
+            <strong style="font-size: 15px; display: block;">🔒 Answer Keys Locked</strong>
+            <span style="font-size: 13px; color: #7F1D1D;">All required answer keys are configured and saved. Editing now requires administrator password authentication.</span>
+        </div>
+    </div>
+{% endif %}
+
 <div class="card" style="margin-bottom: 24px;">
     <h2 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
         <i class="bi bi-info-circle-fill" style="color: var(--accent-color);"></i>
@@ -12,9 +29,10 @@
     </h2>
     <p style="color: var(--text-muted); font-size: 14px;">
         Before you can scan OMR sheets, you must configure the correct answer key for each participant group and paper set. 
-        Once a key is used in an evaluation, it will be **locked** to prevent accidental changes. To edit a locked key, you must delete the results that depend on it.
+        Once all 4 keys are saved, the module locks automatically. To edit a locked key, you must authenticate using the administrator password.
     </p>
 </div>
+
 
 <div class="grid-2">
     {% for item in status_list %}
