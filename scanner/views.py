@@ -22,15 +22,21 @@ class OMRUploadView(LoginRequiredMixin, View):
         if not evaluator_name:
             return render(request, 'scanner/enter_evaluator.html', {'next_url': request.path})
             
-        # 2. Redirect to pending unaccepted scan confirmation page
-        pending_sub = OMRSubmission.objects.filter(
-            operator=request.user, 
-            status='EVALUATED', 
-            is_accepted=False
-        ).first()
-        if pending_sub:
-            messages.error(request, "Error: Current scan was not saved. Please click 'Accept Result' to save it, or 'Rescan' to discard.")
-            return redirect('scanner:confirm_result', pk=pending_sub.pk)
+        # 2. Redirect to pending unaccepted scan confirmation page (using session storage for concurrency safety)
+        pending_id = request.session.get('pending_submission_id')
+        if pending_id:
+            pending_sub = OMRSubmission.objects.filter(
+                pk=pending_id,
+                status='EVALUATED', 
+                is_accepted=False
+            ).first()
+            if pending_sub:
+                messages.error(request, "Error: Current scan was not saved. Please click 'Accept Result' to save it, or 'Rescan' to discard.")
+                return redirect('scanner:confirm_result', pk=pending_sub.pk)
+            else:
+                # Clean up stale session ID
+                if 'pending_submission_id' in request.session:
+                    del request.session['pending_submission_id']
             
         form = OMRUploadForm()
         return render(request, 'scanner/upload.html', {'form': form})
@@ -49,6 +55,9 @@ class OMRUploadView(LoginRequiredMixin, View):
             submission.status = 'PENDING'
             submission.save()
             
+            # Store ID in session for concurrency tracking
+            request.session['pending_submission_id'] = submission.id
+            
             # Trigger OMR evaluation (which handles auto-detecting roll number and linking)
             success, msg = evaluate_and_grade_submission(submission.pk)
             
@@ -57,6 +66,10 @@ class OMRUploadView(LoginRequiredMixin, View):
                 # Redirect to confirmation page instead of results page
                 return redirect('scanner:confirm_result', pk=submission.pk)
             else:
+                # Clean up pending scan session if evaluation failed
+                if 'pending_submission_id' in request.session:
+                    del request.session['pending_submission_id']
+                    
                 if submission.status == 'ERROR' and submission.error_message and submission.error_message.startswith("DUPLICATE_SCAN"):
                     return redirect('scanner:duplicate_warning', pk=submission.pk)
                     
@@ -298,6 +311,10 @@ class OMRSubmissionDeleteView(LoginRequiredMixin, DeleteView):
                 answer_key.is_locked = False
                 answer_key.save()
                 
+        # Clear session ID if this is the pending one
+        if self.request.session.get('pending_submission_id') == submission.pk:
+            del self.request.session['pending_submission_id']
+                
         response = super().form_valid(form)
         messages.success(self.request, f"OMR submission and result for '{participant_name}' have been reset.")
         return response
@@ -323,6 +340,11 @@ class OMRConfirmResultView(LoginRequiredMixin, View):
         if not request.session.get('evaluator_name'):
             return render(request, 'scanner/enter_evaluator.html', {'next_url': request.path})
             
+        session_pending_id = request.session.get('pending_submission_id')
+        if session_pending_id and session_pending_id != pk:
+            messages.error(request, "Access denied: This scan is registered to another operator session.")
+            return redirect('scanner:upload')
+            
         submission = get_object_or_404(OMRSubmission, pk=pk)
         if submission.is_accepted:
             messages.info(request, "This scan has already been accepted.")
@@ -345,6 +367,11 @@ class OMRAcceptResultView(LoginRequiredMixin, View):
         submission = get_object_or_404(OMRSubmission, pk=pk)
         submission.is_accepted = True
         submission.save()
+        
+        # Clear session ID
+        if 'pending_submission_id' in request.session:
+            del request.session['pending_submission_id']
+            
         messages.success(request, f"Result for roll number {submission.participant.roll_number} accepted and saved successfully!")
         return redirect('scanner:upload')
 
@@ -363,5 +390,10 @@ class OMRRescanDeleteView(LoginRequiredMixin, View):
                 
         # Clean up database record (CASCADE deletes the result)
         submission.delete()
+        
+        # Clear session ID
+        if 'pending_submission_id' in request.session:
+            del request.session['pending_submission_id']
+            
         messages.info(request, f"Scan for roll number {roll_number} discarded. Ready for rescan.")
         return redirect('scanner:upload')
