@@ -444,7 +444,8 @@ def evaluate_and_grade_submission(submission_id):
             
             if existing_eval:
                 operator_name = existing_eval.operator.username if existing_eval.operator else "Unknown"
-                scan_time = existing_eval.uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
+                local_uploaded_at = timezone.localtime(existing_eval.uploaded_at)
+                scan_time = local_uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
                 # Raise special prefix so the view can catch it and show duplicate warning screen
                 raise ValueError(f"DUPLICATE_SCAN:{submission.participant.roll_number}:{submission.participant.group}:{scan_time}:{operator_name}")
             

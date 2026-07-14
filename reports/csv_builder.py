@@ -62,8 +62,10 @@ def build_rankings_csv(submissions, file_object):
             unanswered = '—'
             confidence = '—'
             
+        from django.utils import timezone
+        local_uploaded_at = timezone.localtime(s.uploaded_at)
         status = s.get_status_display()
-        timestamp = s.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = local_uploaded_at.strftime('%Y-%m-%d %H:%M:%S')
         operator = s.operator.username if s.operator else 'System'
         
         writer.writerow([

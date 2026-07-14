@@ -105,7 +105,9 @@ class OMRDuplicateWarningView(LoginRequiredMixin, View):
                     status='EVALUATED'
                 ).exclude(pk=new_submission.pk).first()
                 if existing_eval:
-                    scan_time = existing_eval.uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
+                    from django.utils import timezone
+                    local_uploaded_at = timezone.localtime(existing_eval.uploaded_at)
+                    scan_time = local_uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
                     operator_name = existing_eval.operator.username if existing_eval.operator else "Unknown"
 
         context = {
