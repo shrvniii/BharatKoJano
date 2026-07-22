@@ -14,8 +14,13 @@ def detect_anchors(img_gray):
         cv2.THRESH_BINARY_INV, 11, 2
     )
     
-    # Find contours
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Apply morphological opening to erase thin lines (like column separator lines)
+    # that can merge with the corner brackets and distort the warp
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    opened = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    
+    # Find contours on the cleaned binary image
+    contours, _ = cv2.findContours(opened, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     img_h, img_w = img_gray.shape
     min_area = (img_w * img_h) * 0.00005  # Loosened min area (0.005%)
@@ -35,8 +40,8 @@ def detect_anchors(img_gray):
                 rect_area = w * h
                 solidity = float(area) / rect_area if rect_area > 0 else 0
                 
-                # Loosened solidity threshold (0.2) to support L-shaped brackets and degraded print quality
-                if solidity > 0.2:
+                # Solidity threshold set to 0.4 to filter out sparse background noise
+                if solidity > 0.4:
                     # Store center point
                     cx = x + w / 2
                     cy = y + h / 2
@@ -45,22 +50,25 @@ def detect_anchors(img_gray):
     if len(candidates) < 4:
         raise ValueError(f"Could not find all 4 corner registration marks. Found {len(candidates)} candidates.")
         
-    # If we have more than 4 candidates, filter to keep the ones closest to the corners of the image
-    corners = [
-        (0, 0),          # Top-Left
-        (img_w, 0),      # Top-Right
-        (0, img_h),      # Bottom-Left
-        (img_w, img_h)   # Bottom-Right
-    ]
-    
-    selected_anchors = []
-    for corner in corners:
-        # Find candidate closest to this corner
-        best_candidate = min(candidates, key=lambda pt: (pt[0] - corner[0])**2 + (pt[1] - corner[1])**2)
-        selected_anchors.append(best_candidate)
+    # Match to corners with symmetry checks to prevent picking background noise
+    # 1. Get Top-Left (TL)
+    tl = min(candidates, key=lambda pt: pt[0]**2 + pt[1]**2)
+
+    # 2. Get Top-Right (TR) - must be in the top half
+    tr = min([pt for pt in candidates if pt[1] < img_h * 0.4], key=lambda pt: (pt[0] - img_w)**2 + pt[1]**2)
+
+    # 3. Get Bottom-Left (BL) - must be in the left half
+    bl = min([pt for pt in candidates if pt[0] < img_w * 0.4], key=lambda pt: pt[0]**2 + (pt[1] - img_h)**2)
+
+    # 4. Get Bottom-Right (BR) - must be vertically aligned (within 40px) of BL to prevent picking background noise
+    br_candidates = [pt for pt in candidates if pt[0] > img_w * 0.5 and abs(pt[1] - bl[1]) < 40]
+    if not br_candidates:
+        br = min(candidates, key=lambda pt: (pt[0] - img_w)**2 + (pt[1] - img_h)**2)
+    else:
+        br = min(br_candidates, key=lambda pt: (pt[0] - img_w)**2 + (pt[1] - img_h)**2)
         
     # Order of selected_anchors is: TL, TR, BL, BR
-    return np.array(selected_anchors, dtype="float32")
+    return np.array([tl, tr, bl, br], dtype="float32")
 
 def warp_image(img, anchors):
     # Standard warped size
